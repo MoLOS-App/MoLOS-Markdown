@@ -15,9 +15,6 @@ export interface MarkdownPage {
 	updatedAt: number;
 }
 
-// Legacy alias for backwards compatibility
-export type KnowledgePage = MarkdownPage;
-
 export interface MarkdownVersion {
 	id: string;
 	userId: string;
@@ -28,9 +25,6 @@ export interface MarkdownVersion {
 	createdAt: number;
 }
 
-// Legacy alias for backwards compatibility
-export type KnowledgeVersion = MarkdownVersion;
-
 // ============== INPUT TYPES ==============
 
 export interface CreateMarkdownPageInput {
@@ -40,9 +34,6 @@ export interface CreateMarkdownPageInput {
 	path?: string;
 	tags?: string[];
 }
-
-// Legacy alias for backwards compatibility
-export type CreateKnowledgePageInput = CreateMarkdownPageInput;
 
 // ============== TREE NODE TYPES ==============
 export interface TreeNode {

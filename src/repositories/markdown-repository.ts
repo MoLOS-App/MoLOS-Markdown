@@ -429,6 +429,3 @@ export class MarkdownRepository extends BaseRepository {
 		return result.rowsAffected > 0;
 	}
 }
-
-// Legacy alias for backwards compatibility
-export { MarkdownRepository as KnowledgeRepository };
