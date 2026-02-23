@@ -38,13 +38,13 @@
 	);
 </script>
 
-<!-- Card with hover lift effect -->
-<article
-	class="group relative flex flex-col p-4 rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer"
-	onclick={onNavigate}
->
+	<!-- Card with hover lift effect -->
+	<article
+		class="group relative flex flex-col p-5 rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+		onclick={onNavigate}
+	>
 	<!-- Card Header -->
-	<div class="flex items-start justify-between gap-3 mb-3">
+	<div class="flex items-start justify-between gap-4 mb-4">
 		<div class="flex items-center gap-3 flex-1 min-w-0">
 			<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-sm ring-2 ring-white/20">
 				<FileText class="h-5 w-5 text-white" />
@@ -67,16 +67,16 @@
 
 	<!-- Preview Content -->
 	{#if showPreview && page.content}
-		<p class="text-sm text-muted-foreground line-clamp-3 mb-3">
+		<p class="text-sm text-muted-foreground line-clamp-3 mb-4">
 			{previewText}
 		</p>
 	{/if}
 
 	<!-- Tags -->
 	{#if tags.length > 0}
-		<div class="flex flex-wrap gap-1.5 mb-3">
+		<div class="flex flex-wrap gap-2 mb-4">
 			{#each tags.slice(0, 3) as tag}
-				<Badge variant="secondary" class="text-xs bg-primary/10 text-primary/80 ring-1 ring-primary/20">
+				<Badge variant="secondary" class="text-xs px-2.5 py-1 bg-primary/10 text-primary/80 ring-1 ring-primary/20">
 					{tag}
 				</Badge>
 			{/each}
@@ -87,7 +87,7 @@
 	{/if}
 
 	<!-- Footer Metadata -->
-	<div class="flex items-center gap-3 text-xs text-muted-foreground mt-auto pt-3 border-t border-border/30">
+	<div class="flex items-center gap-4 text-xs text-muted-foreground mt-auto pt-4 border-t border-border/30">
 		<div class="flex items-center gap-1">
 			<Calendar class="h-3 w-3" />
 			<span>{formattedDate}</span>

@@ -5,7 +5,7 @@
 	import { Input } from "$lib/components/ui/input";
 	import { Badge } from "$lib/components/ui/badge";
 	import type { MarkdownPage } from "../models";
-	import { FileText, FolderOpen, X, Plus, Calendar, Hash, FileText as FileTextIcon } from "lucide-svelte";
+	import { Edit, FolderOpen, X, Plus, Calendar, Hash, FileText as FileTextIcon } from "lucide-svelte";
 
 	interface Props {
 		page: MarkdownPage;
@@ -129,15 +129,15 @@
 </script>
 
 <Dialog.Root open={true} onOpenChange={(o) => o && onClose()}>
-	<Dialog.Content class="max-w-md">
+	<Dialog.Content class="max-w-[90vw] sm:max-w-md">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-3">
 				<div class="p-2 bg-blue-500/10 rounded-lg">
-					<FileText class="h-5 w-5 text-blue-500" />
+					<Edit class="h-5 w-5 text-blue-500" />
 				</div>
 				<div>
 					Edit Page
-					<p class="text-sm font-normal text-muted-foreground mt-0.5">Update page details below</p>
+					<p class="text-xs sm:text-sm font-normal text-muted-foreground mt-0.5">Update page details below</p>
 				</div>
 			</Dialog.Title>
 		</Dialog.Header>
@@ -162,7 +162,7 @@
 						id="path"
 						value={formData.pathPrefix}
 						placeholder="/docs"
-						class="font-mono text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20 pr-24"
+						class="font-mono text-xs sm:text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20 pr-16 sm:pr-24"
 						onfocus={handlePathFocus}
 						onblur={handlePathBlur}
 						oninput={handlePathInput}
@@ -170,26 +170,26 @@
 					/>
 					<!-- Slug preview -->
 					{#if slug}
-						<div class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">
+						<div class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] sm:text-xs text-muted-foreground font-mono">
 							/{slug}
 						</div>
 					{/if}
 					{#if showSuggestions && filteredSuggestions.length > 0}
-						<div class="absolute z-50 w-full mt-1 bg-card border border-border/50 rounded-lg shadow-lg overflow-hidden">
+						<div class="absolute z-50 w-full mt-1 bg-card border border-border/50 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
 							{#each filteredSuggestions as suggestion}
 								<button
 									onclick={() => selectPath(suggestion)}
-									class="w-full text-left px-3 py-2 text-sm font-mono hover:bg-accent/50 transition-colors flex items-center gap-2"
+									class="w-full text-left px-3 py-2 text-xs sm:text-sm font-mono hover:bg-accent/50 transition-colors flex items-center gap-2"
 								>
-									<FolderOpen class="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+									<FolderOpen class="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground/50 shrink-0" />
 									<span>{suggestion}</span>
 								</button>
 							{/each}
 						</div>
 					{/if}
 				</div>
-				<p class="text-xs text-muted-foreground mt-1">
-					Full path: <span class="font-mono">{fullPath || "/" + slug}</span>
+				<p class="text-[10px] sm:text-xs text-muted-foreground mt-1">
+					Full path: <span class="font-mono text-xs">{fullPath || "/" + slug}</span>
 				</p>
 			</div>
 
@@ -202,7 +202,7 @@
 						bind:value={tagInput}
 						onkeypress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
 						placeholder="Add tag..."
-						class="flex-1 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+						class="flex-1 text-xs sm:text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
 					/>
 					<Button size="sm" variant="outline" onclick={addTag} class="shrink-0">
 						<Plus class="h-3 w-3" />
@@ -211,7 +211,7 @@
 				{#if formData.tags.length > 0}
 					<div class="flex flex-wrap gap-1.5 mt-2">
 						{#each formData.tags as tag}
-							<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/5 border border-primary/10 text-xs font-medium">
+							<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/5 border border-primary/10 text-[10px] sm:text-xs font-medium">
 								{tag}
 								<button
 									onclick={() => removeTag(tag)}
@@ -228,7 +228,7 @@
 			<!-- Page Info (read-only) -->
 			<div class="pt-2 border-t border-border/50">
 				<Label class="text-xs font-medium text-muted-foreground mb-2 block">Page Info</Label>
-				<div class="grid grid-cols-2 gap-2 text-xs">
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
 					<div class="flex items-center gap-1.5 text-muted-foreground">
 						<Hash class="h-3.5 w-3.5" />
 						<span>Version {page.version}</span>
@@ -249,11 +249,12 @@
 			</div>
 		</div>
 
-		<Dialog.Footer class="flex gap-2">
-			<Button variant="outline" onclick={onClose}>Cancel</Button>
+		<Dialog.Footer class="flex flex-col sm:flex-row gap-2">
+			<Button variant="outline" onclick={onClose} class="w-full sm:w-auto">Cancel</Button>
 			<Button
 				onclick={handleUpdate}
 				disabled={!formData.title.trim()}
+				class="w-full sm:w-auto"
 			>
 				Save Changes
 			</Button>

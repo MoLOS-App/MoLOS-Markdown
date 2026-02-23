@@ -73,8 +73,8 @@
 </script>
 
 <div
-	class="group relative flex items-center gap-2 py-2.5 px-3 rounded-lg cursor-pointer transition-colors hover:bg-accent/50 {selectedClasses}"
-	style:padding-left="{level * 16 + 12}px"
+	class="group relative flex items-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg cursor-pointer transition-colors hover:bg-accent/50 {selectedClasses}"
+	style:padding-left="{level * 16 + 8}px"
 	onclick={handleClick}
 	onkeydown={handleKeydown}
 	role="treeitem"
@@ -103,25 +103,25 @@
 	<!-- Icon -->
 	{#if isFolder}
 		{#if isExpanded}
-			<FolderOpen class="h-4 w-4 text-blue-500 shrink-0" />
+			<FolderOpen class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 shrink-0" />
 		{:else}
-			<Folder class="h-4 w-4 text-blue-500 shrink-0" />
+			<Folder class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 shrink-0" />
 		{/if}
 	{:else}
-		<File class="h-4 w-4 text-muted-foreground shrink-0" />
+		<File class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
 	{/if}
 
 	<!-- Title and Path -->
 	<div class="flex flex-col flex-1 min-w-0">
-		<span class="text-sm truncate">{node.title}</span>
+		<span class="text-xs sm:text-sm truncate">{node.title}</span>
 		{#if node.path && node.path.length > 1 && node.path !== `/${node.slug}` && node.type === "folder"}
-			<span class="text-xs text-muted-foreground truncate">{node.path}</span>
+			<span class="text-[10px] sm:text-xs text-muted-foreground truncate">{node.path}</span>
 		{/if}
 	</div>
 
 	<!-- Child count badge -->
 	{#if hasChildren}
-		<span class="text-xs text-muted-foreground" aria-label={`${childCount} items`}>
+		<span class="text-[10px] sm:text-xs text-muted-foreground" aria-label={`${childCount} items`}>
 			{childCount}
 		</span>
 	{/if}
@@ -134,57 +134,57 @@
 			onclick={(e) => { e.stopPropagation(); showContextMenu = !showContextMenu; }}
 			aria-label="More options"
 		>
-			<MoreVertical class="h-4 w-4 text-muted-foreground" />
+			<MoreVertical class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
 		</button>
 
 		{#if showContextMenu}
-			<div class="absolute right-0 top-full mt-1 z-50 min-w-[160px] bg-card border border-border rounded-md shadow-lg py-1">
+			<div class="absolute right-0 top-full mt-1 z-50 min-w-[140px] sm:min-w-[160px] bg-card border border-border rounded-md shadow-lg py-1">
 				{#if isFolder}
 					<!-- Folder actions -->
 					<button
 						onclick={() => handleContextMenuAction(() => onRename?.(node))}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
+						class="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
 					>
-						<Edit2 class="h-4 w-4" />
+						<Edit2 class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 						<span>Rename Folder</span>
 					</button>
 					<button
 						onclick={() => handleContextMenuAction(() => onManageTags?.(node))}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
+						class="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
 					>
-						<Tag class="h-4 w-4" />
+						<Tag class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 						<span>Manage Tags</span>
 					</button>
 					<div class="h-px bg-border my-1"></div>
 					<button
 						onclick={() => handleContextMenuAction(() => onDelete?.(node))}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 text-destructive transition-colors"
+						class="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-accent/50 flex items-center gap-2 text-destructive transition-colors"
 					>
-						<Trash2 class="h-4 w-4" />
+						<Trash2 class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 						<span>Delete Folder</span>
 					</button>
 				{:else}
 					<!-- Page actions -->
 					<button
 						onclick={() => handleContextMenuAction(() => onRename?.(node))}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
+						class="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
 					>
-						<Edit2 class="h-4 w-4" />
+						<Edit2 class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 						<span>Edit Page</span>
 					</button>
 					<button
 						onclick={() => handleContextMenuAction(() => onManageTags?.(node))}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
+						class="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-accent/50 flex items-center gap-2 transition-colors"
 					>
-						<Tag class="h-4 w-4" />
+						<Tag class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 						<span>Manage Tags</span>
 					</button>
 					<div class="h-px bg-border my-1"></div>
 					<button
 						onclick={() => handleContextMenuAction(() => onDelete?.(node))}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 text-destructive transition-colors"
+						class="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-accent/50 flex items-center gap-2 text-destructive transition-colors"
 					>
-						<Trash2 class="h-4 w-4" />
+						<Trash2 class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 						<span>Delete Page</span>
 					</button>
 				{/if}

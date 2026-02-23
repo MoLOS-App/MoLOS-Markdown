@@ -5,7 +5,10 @@
 	import { Textarea } from "$lib/components/ui/textarea";
 	import { Input } from "$lib/components/ui/input";
 	import {
-		BookOpen, FileText, Search, Edit, Trash2, Save, X, Calendar, Tag, FileText as FileTextIcon, Clock
+		BookOpen, FileText, Search, Wrench, Trash2, Save, X, Calendar, Tag, FileText as FileTextIcon, Clock, Menu, X as CloseIcon,
+
+		SquarePen
+
 	} from "lucide-svelte";
 	import PageEditor from "../../lib/components/PageEditor.svelte";
 	import PageCreateDialog from "../../lib/components/PageCreateDialog.svelte";
@@ -39,6 +42,9 @@
 	let pageToDelete = $state<MarkdownPage | null>(null);
 	let isSaving = $state(false);
 	let tagFilter = $state<string>("all");
+
+	// Mobile sidebar state
+	let sidebarOpen = $state(false);
 
 	// Context menu state
 	let contextMenuNode = $state<TreeNode | null>(null);
@@ -435,44 +441,60 @@
 
 	const wordCount = $derived(editContent.split(/\s+/).filter(x => x).length);
 	const renderedPageContent = $derived(selectedPage?.content ? marked(selectedPage.content) : "");
-</script>
+
+	function toggleSidebar() {
+		sidebarOpen = !sidebarOpen;
+	}
+
+	function closeSidebar() {
+		sidebarOpen = false;
+	}</script>
 
 <div class="h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
 	<!-- Top Filter Bar -->
-	<header class="border-b bg-card/80 backdrop-blur-sm px-6 py-4 sticky top-0 z-10">
-		<div class="flex items-center justify-between gap-6">
-			<!-- Left: Title & Search -->
-			<div class="flex items-center gap-6 flex-1">
-				<div class="flex items-center gap-3">
-					<div class="p-2 bg-emerald-500/10 rounded-lg">
+	<header class="border-b bg-card/80 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10">
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6">
+			<!-- Left: Title, Menu, & Search -->
+			<div class="flex items-center gap-3 sm:gap-6 w-full sm:flex-1">
+				<div class="flex items-center gap-3 flex-shrink-0">
+					<Button
+						variant="ghost"
+						size="icon"
+						class="lg:hidden"
+						onclick={toggleSidebar}
+						aria-label="Toggle sidebar"
+					>
+						<Menu class="h-5 w-5" />
+					</Button>
+					<div class="p-2 bg-emerald-500/10 rounded-lg hidden sm:flex">
 						<BookOpen class="h-5 w-5 text-emerald-500" />
 					</div>
-					<div>
-						<h1 class="text-xl font-bold tracking-tight">Markdown Documents</h1>
-						<p class="text-xs text-muted-foreground">Knowledge base & documentation</p>
+					<div class="flex-1 min-w-0">
+						<h1 class="text-lg sm:text-xl font-bold tracking-tight truncate">Markdown Documents</h1>
+						<p class="text-xs text-muted-foreground hidden sm:block">Knowledge base & documentation</p>
 					</div>
 				</div>
 
-				<div class="h-8 w-px bg-border"></div>
+				<div class="h-8 w-px bg-border hidden sm:block"></div>
 
-				<div class="relative flex-1 max-w-md">
+				<div class="relative w-full sm:flex-1 sm:max-w-md">
 					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					<Input
 						bind:value={searchQuery}
 						placeholder="Search pages..."
-						class="pl-10 h-10 bg-muted/50 border-muted focus-visible:bg-background transition-colors"
+						class="pl-10 h-9 sm:h-10 bg-muted/50 border-muted focus-visible:bg-background transition-colors"
 					/>
 				</div>
 			</div>
 
 			<!-- Right: Filters & Stats -->
-			<div class="flex items-center gap-4">
+			<div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
 				<!-- Tag Filter -->
 				{#if allTags.length > 0}
 					<Select bind:value={tagFilter}>
-						<SelectTrigger class="w-[160px] h-10">
-							<Tag class="h-4 w-4 mr-2 text-muted-foreground" />
-							{tagFilter === "all" ? "All Tags" : tagFilter}
+						<SelectTrigger class="w-full sm:w-[160px] h-9 sm:h-10">
+							<Tag class="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+							<span class="truncate">{tagFilter === "all" ? "All Tags" : tagFilter}</span>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">All Tags</SelectItem>
@@ -487,48 +509,74 @@
 	</header>
 
 	<!-- Main Content Area -->
-	<div class="flex-1 flex overflow-hidden">
+	<div class="flex-1 flex overflow-hidden relative">
 		<!-- Sidebar -->
-		<aside class="flex flex-col bg-card/50 backdrop-blur-sm border-r border-border/50 w-80" aria-label="Markdown documents navigation">
+		<aside
+			class="fixed inset-y-0 left-0 z-50 flex flex-col bg-card/95 backdrop-blur-sm border-r border-border/50 w-80 transform transition-transform duration-300 ease-in-out lg:static lg:transform-none"
+			class:hidden={!sidebarOpen && !sidebarOpen}
+			aria-label="Markdown documents navigation"
+		>
+			<!-- Mobile sidebar header -->
+			<div class="lg:hidden flex items-center justify-between p-4 border-b border-border/50">
+				<h2 class="text-sm font-semibold">Documents</h2>
+				<Button variant="ghost" size="icon" onclick={closeSidebar}>
+					<CloseIcon class="h-4 w-4" />
+				</Button>
+			</div>
 			<PageTreeView
 				tree={filteredTree}
 				{selectedPath}
 				searchQuery=""
-				onSelect={handleSelectPath}
-				onNewPage={() => showCreateDialog = true}
+				onSelect={(path) => {
+					handleSelectPath(path);
+					closeSidebar();
+				}}
+				onNewPage={() => {
+					showCreateDialog = true;
+					closeSidebar();
+				}}
 				onRenameNode={handleRenameNode}
 				onManageNodeTags={handleManageNodeTags}
 				onDeleteNode={handleDeleteNode}
 			/>
 		</aside>
 
+		<!-- Mobile sidebar overlay -->
+		{#if sidebarOpen}
+			<div
+				class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+				onclick={closeSidebar}
+				aria-hidden="true"
+			></div>
+		{/if}
+
 	<!-- Main Content -->
-	<main class="flex-1 overflow-hidden bg-muted/30/50 backdrop-blur-sm" aria-live="polite">
+	<main class="flex-1 overflow-hidden bg-muted/30/50 backdrop-blur-sm lg:flex lg:flex-col" aria-live="polite">
 		{#if selectedPage}
 			<!-- View Mode -->
 			{#if !isEditing}
 				<div class="flex flex-col h-full">
 					<!-- Actions bar -->
-					<div class="px-6 py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm flex items-center justify-between shrink-0">
-						<div class="flex items-center gap-3">
-							<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
+					<div class="px-3 sm:px-6 py-2 sm:py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm flex items-center justify-between gap-2 shrink-0">
+						<div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+							<div class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
 								<FileTextIcon class="h-3.5 w-3.5 text-emerald-500" />
 								<span class="text-xs font-medium">{selectedPage.content ? 'Ready' : 'No content'}</span>
 							</div>
 							{#if selectedPage.content}
-								<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10">
+								<div class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10">
 									<span class="text-xs font-medium">{selectedPage.content.split(/\s+/).filter(x => x).length} words</span>
 								</div>
 							{/if}
 						</div>
 
-						<div class="flex items-center gap-2">
+						<div class="flex items-center gap-1 sm:gap-2">
 							<Button size="sm" variant="ghost" onclick={startEditing} class="hover:bg-accent/50">
-								<Edit class="h-4 w-4 mr-1" />
-								Edit
+								<SquarePen class="h-4 w-4 sm:mr-1" />
+								<span class="hidden sm:inline">Edit</span>
 							</Button>
 							<Button size="sm" variant="ghost" onclick={() => showEditDialog = true} class="hover:bg-accent/50">
-								<Edit class="h-4 w-4" />
+								<Wrench class="h-4 w-4" />
 							</Button>
 							<Button size="sm" variant="ghost" onclick={() => promptDelete(selectedPage)} class="hover:bg-destructive/10 text-destructive">
 								<Trash2 class="h-4 w-4" />
@@ -537,11 +585,11 @@
 					</div>
 
 					<!-- Page Content -->
-					<div class="flex-1 overflow-y-auto px-6 py-6">
-						<h1 class="text-2xl font-bold tracking-tight mb-4">{selectedPage.title}</h1>
+					<div class="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
+						<h1 class="text-xl sm:text-2xl font-bold tracking-tight mb-3 sm:mb-4">{selectedPage.title}</h1>
 
 						<!-- Tags and metadata -->
-						<div class="flex flex-wrap items-center gap-2 mb-6">
+						<div class="flex flex-wrap items-center gap-2 mb-4 sm:mb-6">
 							{#each (selectedPage.tags ? JSON.parse(selectedPage.tags) : []) as tag}
 								<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/5 border border-primary/10 text-xs font-medium">
 									{tag}
@@ -558,14 +606,14 @@
 							{#if selectedPage.content}
 								{@html renderedPageContent}
 							{:else}
-								<div class="flex flex-col items-center justify-center py-16 text-center">
-									<div class="w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/20 flex items-center justify-center">
-										<FileText class="h-8 w-8 text-muted-foreground/50" />
+								<div class="flex flex-col items-center justify-center py-12 sm:py-16 text-center px-4">
+									<div class="w-12 h-12 sm:w-16 sm:h-16 mb-3 sm:mb-4 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/20 flex items-center justify-center">
+										<FileText class="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/50" />
 									</div>
-									<h3 class="text-lg font-semibold mb-2">No content yet</h3>
-									<p class="text-muted-foreground text-sm mb-4">Start writing to create your markdown document</p>
+									<h3 class="text-base sm:text-lg font-semibold mb-2">No content yet</h3>
+									<p class="text-muted-foreground text-xs sm:text-sm mb-4">Start writing to create your markdown document</p>
 									<Button onclick={startEditing} variant="outline" size="sm">
-										<Edit class="h-4 w-4 mr-1" />
+										<SquarePen class="h-4 w-4 mr-1" />
 										Add Content
 									</Button>
 								</div>
@@ -577,63 +625,63 @@
 				<!-- Edit Mode -->
 				<div class="flex flex-col h-full">
 					<!-- Editor header -->
-					<div class="px-6 py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm flex items-center justify-between shrink-0">
-						<div class="flex items-center gap-3">
-							<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/10">
-								<Edit class="h-3.5 w-3.5 text-blue-500" />
+					<div class="px-3 sm:px-6 py-2 sm:py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm flex items-center justify-between gap-2 shrink-0">
+						<div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+							<div class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/10">
+								<SquarePen class="h-3.5 w-3.5 text-blue-500" />
 								<span class="text-xs font-medium">Editing</span>
 							</div>
-							<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10">
+							<div class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10">
 								<span class="text-xs font-medium">{wordCount} words</span>
 							</div>
 						</div>
 
-						<div class="flex items-center gap-2">
+						<div class="flex items-center gap-1 sm:gap-2">
 							<Button size="sm" variant="outline" onclick={cancelEditing} disabled={isSaving}>
-								<X class="h-4 w-4 mr-1" />
-								Cancel
+								<X class="h-4 w-4 sm:mr-1" />
+								<span class="hidden sm:inline">Cancel</span>
 							</Button>
 							<Button size="sm" onclick={handleSaveContent} disabled={isSaving}>
-								<Save class="h-4 w-4 mr-1" />
+								<Save class="h-4 w-4 sm:mr-1" />
 								{isSaving ? 'Saving...' : 'Save'}
 							</Button>
 						</div>
 					</div>
 
 					<!-- Editor toolbar -->
-					<div class="px-6 py-2 border-b border-border/50 bg-muted/30 flex items-center gap-1 shrink-0">
+					<div class="px-3 sm:px-6 py-1.5 sm:py-2 border-b border-border/50 bg-muted/30 flex items-center gap-1 overflow-x-auto shrink-0">
 						<button
 							onclick={() => { editContent += '**bold**'; }}
-							class="p-2 rounded-md hover:bg-accent/50 text-sm font-semibold"
+							class="p-1.5 sm:p-2 rounded-md hover:bg-accent/50 text-sm font-semibold flex-shrink-0"
 							title="Bold"
 						>
 							B
 						</button>
 						<button
 							onclick={() => { editContent += '*italic*'; }}
-							class="p-2 rounded-md hover:bg-accent/50 text-sm italic"
+							class="p-1.5 sm:p-2 rounded-md hover:bg-accent/50 text-sm italic flex-shrink-0"
 							title="Italic"
 						>
 							I
 						</button>
 						<button
 							onclick={() => { editContent += '`code`'; }}
-							class="p-2 rounded-md hover:bg-accent/50 text-sm font-mono"
+							class="p-1.5 sm:p-2 rounded-md hover:bg-accent/50 text-sm font-mono flex-shrink-0"
 							title="Code"
 						>
 							&lt;&gt;
 						</button>
-						<div class="h-6 w-px bg-border mx-1"></div>
+						<div class="h-5 sm:h-6 w-px bg-border mx-1 flex-shrink-0"></div>
 						<button
 							onclick={() => { editContent += '\n## '; }}
-							class="p-2 rounded-md hover:bg-accent/50 text-sm font-semibold"
+							class="p-1.5 sm:p-2 rounded-md hover:bg-accent/50 text-sm font-semibold flex-shrink-0"
 							title="Heading"
 						>
 							H
 						</button>
 						<button
 							onclick={() => { editContent += '\n- '; }}
-							class="p-2 rounded-md hover:bg-accent/50 text-sm"
+							class="p-1.5 sm:p-2 rounded-md hover:bg-accent/50 text-sm flex-shrink-0"
 							title="List"
 						>
 							•
@@ -641,24 +689,24 @@
 					</div>
 
 					<!-- Editor -->
-					<div class="flex-1 p-6 overflow-hidden">
+					<div class="flex-1 p-3 sm:p-6 overflow-hidden">
 						<Textarea
 							bind:value={editContent}
 							placeholder="Write your content in Markdown..."
-							class="w-full h-full font-mono text-sm resize-none"
+							class="w-full h-full font-mono text-xs sm:text-sm resize-none"
 						/>
 					</div>
 				</div>
 			{/if}
 		{:else}
 			<!-- Empty State -->
-			<div class="flex-1 flex items-center justify-center">
+			<div class="flex-1 flex items-center justify-center p-4">
 				<div class="text-center max-w-md">
-					<div class="w-20 h-20 mb-6 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
-						<BookOpen class="h-10 w-10 text-emerald-500/50" />
+					<div class="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
+						<BookOpen class="h-8 w-8 sm:h-10 sm:w-10 text-emerald-500/50" />
 					</div>
-					<h3 class="text-xl font-bold mb-2 tracking-tight">Markdown Documents</h3>
-					<p class="text-muted-foreground text-sm mb-6">
+					<h3 class="text-lg sm:text-xl font-bold mb-2 tracking-tight">Markdown Documents</h3>
+					<p class="text-muted-foreground text-xs sm:text-sm mb-4 sm:mb-6">
 						Create documentation, notes, and knowledge base pages
 					</p>
 					<Button onclick={() => showCreateDialog = true}>
@@ -695,7 +743,7 @@
 	<Dialog.Root open={showDeleteDialog} onOpenChange={(open) => {
 		if (!open) showDeleteDialog = false;
 	}}>
-		<Dialog.Content class="shadow-xl">
+		<Dialog.Content class="shadow-xl max-w-[90vw] sm:max-w-md">
 			<Dialog.Header>
 				<Dialog.Title>Delete Page</Dialog.Title>
 				<Dialog.Description class="space-y-2">
@@ -708,9 +756,9 @@
 					{/if}
 				</Dialog.Description>
 			</Dialog.Header>
-			<Dialog.Footer>
-				<Button variant="outline" onclick={() => showDeleteDialog = false} class="transition-all duration-200">Cancel</Button>
-				<Button variant="destructive" onclick={handleDeletePage} class="shadow-sm hover:shadow-md transition-all duration-200">Delete</Button>
+			<Dialog.Footer class="flex-col sm:flex-row gap-2">
+				<Button variant="outline" onclick={() => showDeleteDialog = false} class="transition-all duration-200 w-full sm:w-auto">Cancel</Button>
+				<Button variant="destructive" onclick={handleDeletePage} class="shadow-sm hover:shadow-md transition-all duration-200 w-full sm:w-auto">Delete</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
@@ -721,7 +769,7 @@
 	<Dialog.Root open={showRenameDialog} onOpenChange={(open) => {
 		if (!open) showRenameDialog = false;
 	}}>
-		<Dialog.Content class="shadow-xl max-w-md">
+		<Dialog.Content class="shadow-xl max-w-[90vw] sm:max-w-md">
 			<Dialog.Header>
 				<Dialog.Title>
 					{contextMenuNode.type === "folder" ? "Rename Folder" : "Rename Page"}
@@ -738,9 +786,9 @@
 					autofocus
 				/>
 			</div>
-			<Dialog.Footer>
-				<Button variant="outline" onclick={() => showRenameDialog = false}>Cancel</Button>
-				<Button onclick={handleSaveRename} disabled={!renameValue.trim()}>Rename</Button>
+			<Dialog.Footer class="flex-col sm:flex-row gap-2">
+				<Button variant="outline" onclick={() => showRenameDialog = false} class="w-full sm:w-auto">Cancel</Button>
+				<Button onclick={handleSaveRename} disabled={!renameValue.trim()} class="w-full sm:w-auto">Rename</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
@@ -751,7 +799,7 @@
 	<Dialog.Root open={showManageTagsDialog} onOpenChange={(open) => {
 		if (!open) showManageTagsDialog = false;
 	}}>
-		<Dialog.Content class="shadow-xl max-w-md">
+		<Dialog.Content class="shadow-xl max-w-[90vw] sm:max-w-md">
 			<Dialog.Header>
 				<Dialog.Title>
 					{contextMenuNode.type === "folder" ? "Manage Folder Tags" : "Manage Page Tags"}
@@ -792,9 +840,9 @@
 					<p class="text-sm text-muted-foreground">No tags yet. Add tags above.</p>
 				{/if}
 			</div>
-			<Dialog.Footer>
-				<Button variant="outline" onclick={() => showManageTagsDialog = false}>Cancel</Button>
-				<Button onclick={handleSaveTags}>Save Tags</Button>
+			<Dialog.Footer class="flex-col sm:flex-row gap-2">
+				<Button variant="outline" onclick={() => showManageTagsDialog = false} class="w-full sm:w-auto">Cancel</Button>
+				<Button onclick={handleSaveTags} class="w-full sm:w-auto">Save Tags</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
