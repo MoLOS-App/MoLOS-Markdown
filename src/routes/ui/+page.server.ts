@@ -1,5 +1,5 @@
 import type { PageServerLoad } from "./$types";
-import { MarkdownRepository } from "../../repositories";
+import { MarkdownRepository } from "../../server/repositories/index.js";
 import { db } from "$lib/server/db";
 
 export const load: PageServerLoad = async ({ locals }) => {

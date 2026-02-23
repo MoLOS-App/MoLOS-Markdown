@@ -7,9 +7,9 @@
 	import {
 		BookOpen, FileText, Search, Edit, Trash2, Save, X, Calendar, Tag, FileText as FileTextIcon, Clock
 	} from "lucide-svelte";
-	import PageEditor from "../../components/PageEditor.svelte";
-	import PageCreateDialog from "../../components/PageCreateDialog.svelte";
-	import PageTreeView from "../../components/PageTreeView.svelte";
+	import PageEditor from "../../lib/components/PageEditor.svelte";
+	import PageCreateDialog from "../../lib/components/PageCreateDialog.svelte";
+	import PageTreeView from "../../lib/components/PageTreeView.svelte";
 	import * as Dialog from "$lib/components/ui/dialog";
 	import {
 		Select,

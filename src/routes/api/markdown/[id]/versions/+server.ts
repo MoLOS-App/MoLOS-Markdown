@@ -1,6 +1,6 @@
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { MarkdownRepository } from "../../../../../repositories";
+import { MarkdownRepository } from "../../../../../server/repositories/index.js";
 import { db } from "$lib/server/db";
 
 export const GET: RequestHandler = async ({ locals, params }) => {

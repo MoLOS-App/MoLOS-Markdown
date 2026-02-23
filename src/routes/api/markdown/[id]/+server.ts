@@ -1,7 +1,7 @@
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { z } from "zod";
-import { MarkdownRepository } from "../../../../repositories";
+import { MarkdownRepository } from "../../../../server/repositories/index.js";
 import { db } from "$lib/server/db";
 
 const UpdateMarkdownPageSchema = z.object({

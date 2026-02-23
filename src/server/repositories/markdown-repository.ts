@@ -1,12 +1,12 @@
 import { eq, and, desc, like, or } from "drizzle-orm";
-import { BaseRepository } from "./base-repository";
-import { markdownPages, markdownVersions } from "../server/database/schema";
+import { BaseRepository } from "./base-repository.js";
+import { markdownPages, markdownVersions } from "../db/schema";
 import type {
 	MarkdownPage,
 	MarkdownVersion,
 	CreateMarkdownPageInput,
 	TreeNode
-} from "../models";
+} from "../../models/index.js";
 
 export class MarkdownRepository extends BaseRepository {
 	private mapToPage(row: Record<string, unknown>): MarkdownPage {
