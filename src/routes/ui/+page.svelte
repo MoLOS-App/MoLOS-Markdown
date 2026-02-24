@@ -508,50 +508,61 @@
 		</div>
 	</header>
 
+	<!-- Mobile Sidebar (Drawer) -->
+	{#if sidebarOpen}
+		<div class="fixed inset-0 z-50 lg:hidden">
+			<!-- Overlay -->
+			<div
+				class="absolute inset-0 bg-black/50"
+				onclick={closeSidebar}
+				aria-hidden="true"
+			></div>
+			<!-- Sidebar -->
+			<aside class="absolute inset-y-0 left-0 w-80 bg-card/95 backdrop-blur-sm border-r border-border/50 flex flex-col shadow-xl">
+				<div class="flex items-center justify-between p-4 border-b border-border/50">
+					<h2 class="text-sm font-semibold">Documents</h2>
+					<Button variant="ghost" size="icon" onclick={closeSidebar}>
+						<CloseIcon class="h-4 w-4" />
+					</Button>
+				</div>
+				<PageTreeView
+					tree={filteredTree}
+					{selectedPath}
+					searchQuery=""
+					onSelect={(path) => {
+						handleSelectPath(path);
+						closeSidebar();
+					}}
+					onNewPage={() => {
+						showCreateDialog = true;
+						closeSidebar();
+					}}
+					onRenameNode={handleRenameNode}
+					onManageNodeTags={handleManageNodeTags}
+					onDeleteNode={handleDeleteNode}
+				/>
+			</aside>
+		</div>
+	{/if}
+
 	<!-- Main Content Area -->
-	<div class="flex-1 flex overflow-hidden relative">
-		<!-- Sidebar -->
-		<aside
-			class="fixed inset-y-0 left-0 z-50 flex flex-col bg-card/95 backdrop-blur-sm border-r border-border/50 w-80 transform transition-transform duration-300 ease-in-out lg:static lg:transform-none"
-			class:hidden={!sidebarOpen && !sidebarOpen}
-			aria-label="Markdown documents navigation"
-		>
-			<!-- Mobile sidebar header -->
-			<div class="lg:hidden flex items-center justify-between p-4 border-b border-border/50">
-				<h2 class="text-sm font-semibold">Documents</h2>
-				<Button variant="ghost" size="icon" onclick={closeSidebar}>
-					<CloseIcon class="h-4 w-4" />
-				</Button>
-			</div>
+	<div class="flex-1 flex overflow-hidden">
+		<!-- Desktop Sidebar (Static) -->
+		<aside class="hidden lg:flex flex-col bg-card/50 backdrop-blur-sm border-r border-border/50 w-80" aria-label="Markdown documents navigation">
 			<PageTreeView
 				tree={filteredTree}
 				{selectedPath}
 				searchQuery=""
-				onSelect={(path) => {
-					handleSelectPath(path);
-					closeSidebar();
-				}}
-				onNewPage={() => {
-					showCreateDialog = true;
-					closeSidebar();
-				}}
+				onSelect={handleSelectPath}
+				onNewPage={() => showCreateDialog = true}
 				onRenameNode={handleRenameNode}
 				onManageNodeTags={handleManageNodeTags}
 				onDeleteNode={handleDeleteNode}
 			/>
 		</aside>
 
-		<!-- Mobile sidebar overlay -->
-		{#if sidebarOpen}
-			<div
-				class="fixed inset-0 bg-black/50 z-40 lg:hidden"
-				onclick={closeSidebar}
-				aria-hidden="true"
-			></div>
-		{/if}
-
-	<!-- Main Content -->
-	<main class="flex-1 overflow-hidden bg-muted/30/50 backdrop-blur-sm lg:flex lg:flex-col" aria-live="polite">
+		<!-- Main Content -->
+		<main class="flex-1 overflow-hidden bg-muted/30/50 backdrop-blur-sm" aria-live="polite">
 		{#if selectedPage}
 			<!-- View Mode -->
 			{#if !isEditing}
