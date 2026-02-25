@@ -1,5 +1,5 @@
-import { BookOpen } from "lucide-svelte";
-import type { ModuleConfig } from '$lib/config/types';
+import { BookOpen, FileText } from 'lucide-svelte';
+import type { ModuleConfig } from '@molos/module-types';
 
 export const moduleConfig: ModuleConfig = {
 	id: "MoLOS-Markdown",
@@ -12,6 +12,11 @@ export const moduleConfig: ModuleConfig = {
 			name: "Documents",
 			icon: BookOpen,
 			href: "/ui/MoLOS-Markdown"
+		},
+		{
+			name: "Quick Notes",
+			icon: FileText,
+			href: "/ui/MoLOS-Markdown/quick-notes"
 		}
 	]
 };

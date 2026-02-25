@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
 // Markdown Pages - Hierarchical documentation pages
 export const markdownPages = sqliteTable(
@@ -42,5 +43,29 @@ export const markdownVersions = sqliteTable(
 		pageIdIdx: index("idx_markdown_versions_page_id").on(table.pageId),
 		userIdIdx: index("idx_markdown_versions_user_id").on(table.userId),
 		versionIdx: index("idx_markdown_versions_version").on(table.version)
+	})
+);
+
+// Quick Notes - Google Keep-style flat notes
+export const markdownQuickNotes = sqliteTable(
+	"MoLOS-Markdown_quick_notes",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id").notNull(),
+		title: text("title"),
+		content: text("content").notNull(),
+		color: text("color"),
+		isPinned: integer("is_pinned", { mode: "boolean" }).notNull().default(false),
+		isArchived: integer("is_archived", { mode: "boolean" }).notNull().default(false),
+		labels: text("labels").notNull().default("[]"),
+		checklist: text("checklist").notNull().default("[]"),
+		createdAt: integer("created_at").notNull().default(sql`(strftime('%s','now'))`),
+		updatedAt: integer("updated_at").notNull().default(sql`(strftime('%s','now'))`)
+	},
+	(table) => ({
+		userIdIdx: index("idx_quick_notes_user_id").on(table.userId),
+		pinnedIdx: index("idx_quick_notes_pinned").on(table.isPinned),
+		archivedIdx: index("idx_quick_notes_archived").on(table.isArchived),
+		updatedAtIdx: index("idx_quick_notes_updated_at").on(table.updatedAt)
 	})
 );

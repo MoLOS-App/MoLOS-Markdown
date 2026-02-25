@@ -1,6 +1,6 @@
 # MoLOS-Markdown Module
 
-Hierarchical markdown document management module for MoLOS with tree navigation, versioning, search, and templates support.
+Hierarchical markdown document management module for MoLOS with tree navigation, versioning, search, templates, and quick notes support.
 
 ## Features
 
@@ -11,20 +11,21 @@ Hierarchical markdown document management module for MoLOS with tree navigation,
 - **Tags**: Organize documents with flexible tagging system
 - **RESTful API**: Complete CRUD operations via REST endpoints
 - **AI Integration**: AI tools for document creation and management
+- **Quick Notes**: Google Keep-style flat notes with checklists, colors, pinning, and archiving
 
 ## Installation
 
-This module is included in the MoLOS monorepo and is automatically loaded when the module is enabled in the configuration.
+This module is included in MoLOS monorepo and is automatically loaded when module is enabled in configuration.
 
-## API Endpoints
+## Documents API Endpoints
 
-### Pages
-
-- `GET /api/MoLOS-Markdown/markdown` - List all pages (supports query params: `?tree=true`, `?templates=true`, `?q=search`, `?path=/path`)
-- `POST /api/MoLOS-Markdown/markdown` - Create a new page
-- `GET /api/MoLOS-Markdown/markdown/[id]` - Get a specific page
-- `PATCH /api/MoLOS-Markdown/markdown/[id]` - Update a page
-- `DELETE /api/MoLOS-Markdown/markdown/[id]` - Delete a page
+| Route | Method | Description |
+|--------|--------|-------------|
+| `/api/MoLOS-Markdown/markdown` | GET | List all pages (supports query params: `?tree=true`, `?templates=true`, `?q=search`, `?path=/path`) |
+| `/api/MoLOS-Markdown/markdown` | POST | Create a new page |
+| `/api/MoLOS-Markdown/markdown/[id]` | GET | Get a specific page |
+| `/api/MoLOS-Markdown/markdown/[id]` | PATCH | Update a page |
+| `/api/MoLOS-Markdown/markdown/[id]` | DELETE | Delete a page |
 
 ### Versions
 
@@ -40,9 +41,74 @@ This module is included in the MoLOS monorepo and is automatically loaded when t
 
 - `GET /api/MoLOS-Markdown/search?q=query&limit=20` - Search pages (integrated with global search)
 
+### Import/Export
+
+- `GET /api/MoLOS-Markdown/export` - Export all pages as JSON
+- `POST /api/MoLOS-Markdown/import` - Import pages from JSON
+
+## Quick Notes API Endpoints
+
+| Route | Method | Description |
+|--------|--------|-------------|
+| `/api/MoLOS-Markdown/quick-notes` | GET | List notes (supports `?archived=true`, `?q=query`, `?pinned=true`) |
+| `/api/MoLOS-Markdown/quick-notes` | POST | Create new note |
+| `/api/MoLOS-Markdown/quick-notes/[id]` | GET | Get single note |
+| `/api/MoLOS-Markdown/quick-notes/[id]` | PATCH | Update note |
+| `/api/MoLOS-Markdown/quick-notes/[id]` | DELETE | Archive note (soft delete) |
+| `/api/MoLOS-Markdown/quick-notes/[id]/pin` | POST | Toggle pinned state |
+| `/api/MoLOS-Markdown/quick-notes/[id]/archive` | POST | Toggle archive state |
+| `/api/MoLOS-Markdown/quick-notes/[id]/checklist` | PATCH | Update checklist |
+| `/api/MoLOS-Markdown/quick-notes/[id]/checklist` | POST | Toggle checklist item checkbox
+
+### Usage
+
+### Creating a Quick Note
+
+```typescript
+const response = await fetch('/api/MoLOS-Markdown/quick-notes', {
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify({
+		title: 'Shopping List',
+		content: '- Milk\n- Eggs\n- Bread',
+		color: 'blue',
+		checklist: [
+			{ id: 'item-1', text: 'Buy milk', isChecked: false },
+			{ id: 'item-2', text: 'Buy eggs', isChecked: false }
+		]
+	})
+});
+```
+
+### Pinning/Archiving Quick Notes
+
+```typescript
+await fetch(`/api/MoLOS-Markdown/quick-notes/${noteId}/pin`, {
+	method: 'POST'
+});
+
+await fetch(`/api/MoLOS-Markdown/quick-notes/${noteId}/archive`, {
+	method: 'POST'
+});
+```
+
+## Quick Notes API Endpoints
+
+| Route | Method | Description |
+|--------|--------|-------------|
+| `/api/MoLOS-Markdown/quick-notes` | GET | List notes (supports `?archived=true`, `?q=query`, `?pinned=true`) |
+| `/api/MoLOS-Markdown/quick-notes` | POST | Create new note |
+| `/api/MoLOS-Markdown/quick-notes/[id]` | GET | Get single note |
+| `/api/MoLOS-Markdown/quick-notes/[id]` | PATCH | Update note |
+| `/api/MoLOS-Markdown/quick-notes/[id]` | DELETE | Archive note (soft delete) |
+| `/api/MoLOS-Markdown/quick-notes/[id]/pin` | POST | Toggle pinned state |
+| `/api/MoLOS-Markdown/quick-notes/[id]/archive` | POST | Toggle archive state |
+| `/api/MoLOS-Markdown/quick-notes/[id]/checklist` | PATCH | Update checklist |
+| `/api/MoLOS-Markdown/quick-notes/[id]/checklist` | POST | Toggle checklist item checkbox
+
 ## Database Schema
 
-### Pages Table (`MoLOS-Markdown_pages`)
+### Documents Table (`MoLOS-Markdown_pages`)
 
 | Column | Type | Description |
 |--------|-------|-------------|
@@ -53,18 +119,18 @@ This module is included in the MoLOS monorepo and is automatically loaded when t
 | content | text | Markdown content |
 | isTemplate | integer | Template flag |
 | parentPageId | text | Parent page ID (for hierarchy) |
-| path | text | Hierarchical path (e.g., `/docs/api`) |
+| path | text | Hierarchical path (e.g., "/docs/api/reference") |
 | tags | text | JSON array of tags |
 | version | integer | Current version number |
 | createdAt | integer | Creation timestamp |
 | updatedAt | integer | Last update timestamp |
 
 **Indexes**:
-- `idx_markdown_pages_user_id`
-- `idx_markdown_pages_parent_page_id`
-- `idx_markdown_pages_path`
-- `idx_markdown_pages_slug`
-- `idx_markdown_pages_updated_at`
+- `idx_markdown_pages_user_id` - User filtering
+- `idx_markdown_pages_parent_page_id` - Tree queries
+- `idx_markdown_pages_path` - Path lookups
+- `idx_markdown_pages_slug` - Slug queries
+- `idx_markdown_pages_updated_at` - Sorting
 
 ### Versions Table (`MoLOS-Markdown_versions`)
 
@@ -79,13 +145,35 @@ This module is included in the MoLOS monorepo and is automatically loaded when t
 | createdAt | integer | Creation timestamp |
 
 **Indexes**:
-- `idx_markdown_versions_page_id`
-- `idx_markdown_versions_user_id`
-- `idx_markdown_versions_version`
+- `idx_markdown_versions_page_id` - Version queries
+- `idx_markdown_versions_user_id` - User version lookups
+- `idx_markdown_versions_version` - Version ordering
+
+### Quick Notes Table (`MoLOS-Markdown_quick_notes`)
+
+| Column | Type | Description |
+|--------|-------|-------------|
+| id | text | Primary key |
+| userId | text | User ID |
+| title | text | Note title |
+| content | text | Note content (markdown supported) |
+| color | text | Background color code (default, red, orange, etc.) |
+| isPinned | integer | Pinned note flag |
+| isArchived | integer | Archived note flag |
+| labels | text | JSON array of label strings |
+| checklist | text | JSON array of checklist items |
+| createdAt | integer | Creation timestamp |
+| updatedAt | integer | Last update timestamp |
+
+**Indexes**:
+- `idx_quick_notes_user_id` - User filtering
+- `idx_quick_notes_pinned` - Pinned notes (shown first)
+- `idx_quick_notes_archived` - Archive filtering
+- `idx_quick_notes_updated_at` - Sorting
 
 ## Usage
 
-### Creating a Page
+### Creating a Document
 
 ```typescript
 const response = await fetch('/api/MoLOS-Markdown/markdown', {
@@ -99,7 +187,7 @@ const response = await fetch('/api/MoLOS-Markdown/markdown', {
 });
 ```
 
-### Updating a Page
+### Updating a Document
 
 ```typescript
 const response = await fetch('/api/MoLOS-Markdown/markdown/page-id', {
@@ -110,6 +198,33 @@ const response = await fetch('/api/MoLOS-Markdown/markdown/page-id', {
 		changeDescription: 'Updated introduction section'
 	})
 });
+```
+
+### Creating a Quick Note
+
+```typescript
+const response = await fetch('/api/MoLOS-Markdown/quick-notes', {
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify({
+		title: 'Shopping List',
+		content: '- Milk\n- Eggs\n- Bread',
+		color: 'blue',
+		checklist: [
+			{ id: 'item-1', text: 'Buy milk', isChecked: false },
+			{ id: 'item-2', text: 'Buy eggs', isChecked: false }
+		]
+	})
+});
+```
+
+### Searching Documents/Notes
+
+```typescript
+const response = await fetch('/api/MoLOS-Markdown/markdown?q=search', {
+	method: 'GET'
+});
+const results = await response.json();
 ```
 
 ### Getting Version History
@@ -124,14 +239,26 @@ const versions = await response.json();
 ```typescript
 const response = await fetch('/api/MoLOS-Markdown/markdown/page-id/restore', {
 	method: 'POST',
-	headers: { 'Content-Type': 'application/json' },
+	headers: {   'Content-Type': 'application/json' },
 	body: JSON.stringify({ version: 2 })
+});
+```
+
+### Pinning/Archiving Quick Notes
+
+```typescript
+await fetch(`/api/MoLOS-Markdown/quick-notes/${noteId}/pin`, {
+	method: 'POST'
+});
+
+await fetch(`/api/MoLOS-Markdown/quick-notes/${noteId}/archive`, {
+	method: 'POST'
 });
 ```
 
 ## Stores
 
-The module provides Svelte stores for client-side state management:
+### Documents Stores
 
 ```typescript
 import {
@@ -144,14 +271,26 @@ import {
 	tree,
 	templates
 } from '$lib/stores/MoLOS-Markdown';
+```
 
-// Subscribe to stores
-selectedPageId.subscribe(id => console.log('Selected:', id));
+### Quick Notes Stores
+
+```typescript
+import {
+	quickNotes,
+	filteredNotes,
+	selectedNoteId,
+	showCreateDialog,
+	activeFilter,
+	searchQuery
+} from '$lib/stores/MoLOS-Markdown/quick-notes';
 ```
 
 ## AI Tools
 
-The module exposes AI tools for use with the MoLOS AI system:
+The module exposes AI tools for use with MoLOS AI system:
+
+### Documents AI Tools
 
 - `get_markdown_pages` - Retrieve all pages
 - `get_markdown_page` - Get a specific page

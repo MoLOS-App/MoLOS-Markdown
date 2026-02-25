@@ -96,3 +96,5 @@ export function clearSelectedPage(): void {
 	editContent.set('');
 	isEditing.set(false);
 }
+
+export * from './quick-notes.js';

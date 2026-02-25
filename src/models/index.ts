@@ -54,3 +54,57 @@ export interface TreeNode {
 	children?: TreeNode[];
 	expanded?: boolean;
 }
+
+// ============== QUICK NOTES TYPES ==============
+
+export const NoteColor = {
+	DEFAULT: 'default',
+	RED: 'red',
+	ORANGE: 'orange',
+	YELLOW: 'yellow',
+	GREEN: 'green',
+	TEAL: 'teal',
+	BLUE: 'blue',
+	DARK_BLUE: 'dark-blue',
+	PURPLE: 'purple',
+	PINK: 'pink',
+	BROWN: 'brown',
+	GRAY: 'gray'
+} as const;
+
+export type NoteColor = (typeof NoteColor)[keyof typeof NoteColor];
+
+export interface QuickNoteChecklistItem {
+	id: string;
+	text: string;
+	isChecked: boolean;
+	sortOrder?: number;
+}
+
+export interface QuickNote {
+	id: string;
+	userId: string;
+	title?: string;
+	content: string;
+	color?: NoteColor;
+	isPinned: boolean;
+	isArchived: boolean;
+	labels: string[];
+	checklist: QuickNoteChecklistItem[];
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface CreateQuickNoteInput {
+	userId: string;
+	title?: string;
+	content: string;
+	color?: NoteColor;
+	labels?: string[];
+	checklist?: QuickNoteChecklistItem[];
+}
+
+export interface UpdateQuickNoteInput extends Partial<CreateQuickNoteInput> {
+	isPinned?: boolean;
+	isArchived?: boolean;
+}
