@@ -109,3 +109,14 @@ export interface CreateQuickNoteInput {
 	isPinned?: boolean;
 	isArchived?: boolean;
 }
+
+export interface ToolDefinition {
+	name: string;
+	description: string;
+	parameters: {
+		type: 'object';
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
+	execute: (params: any) => Promise<any>;
+}

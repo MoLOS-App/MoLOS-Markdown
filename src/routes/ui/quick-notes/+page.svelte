@@ -133,8 +133,8 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-	<header class="border-b bg-card/80 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10">
+<div class="min-h-screen" style="background: linear-gradient(to bottom right, var(--background), var(--background), rgba(var(--muted-foreground), 0.1));">
+	<header class="border-b px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10" style="background-color: rgba(from var(--card) r g b / 0.8); backdrop-filter: blur(8px);">
 		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6 w-full">
 			<div class="flex items-center gap-3 sm:gap-6 flex-1 w-full sm:w-auto">
 				<div class="flex items-center gap-3 flex-shrink-0">
@@ -214,7 +214,7 @@
 			</div>
 		</header>
 
-	<main class="flex-1 overflow-y-auto bg-muted/30/50 backdrop-blur-sm p-4 sm:p-6">
+	<main class="flex-1 overflow-y-auto p-4 sm:p-6" style="background-color: rgba(from var(--muted) r g b / 0.3); backdrop-filter: blur(4px);">
 		{#if $quickNotes.length === 0}
 			<div class="flex-1 flex items-center justify-center min-h-[400px]">
 				<div class="text-center max-w-md">
@@ -288,10 +288,18 @@
 	{/if}
 
 	{#if showDeleteDialog && noteToDelete}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onclick={() => showDeleteDialog = false}>
-			<div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4" onclick={(e) => e.stopPropagation()}>
-				<h3 class="text-lg font-semibold mb-2">Delete Note?</h3>
-				<p class="text-muted-foreground mb-6">
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+			style="background-color: rgba(0, 0, 0, 0.5);"
+			onclick={() => showDeleteDialog = false}
+		>
+			<div
+				class="rounded-xl shadow-2xl p-6 max-w-sm mx-4"
+				style="background-color: var(--popover);"
+				onclick={(e) => e.stopPropagation()}
+			>
+				<h3 class="text-lg font-semibold mb-2" style="color: var(--foreground);">Delete Note?</h3>
+				<p class="mb-6 text-sm" style="color: var(--muted-foreground);">
 					This note will be permanently deleted. This action cannot be undone.
 				</p>
 				<div class="flex gap-2">

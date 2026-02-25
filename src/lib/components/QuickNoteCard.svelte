@@ -31,20 +31,10 @@
 	);
 	const totalChecklistItems = $derived(note.checklist.length);
 
-	// Determine text color based on background luminance
-	function getContrastColor(hexColor: string): 'dark' | 'light' {
-		const hex = hexColor.replace('#', '');
-		const r = parseInt(hex.substring(0, 2), 16);
-		const g = parseInt(hex.substring(2, 4), 16);
-		const b = parseInt(hex.substring(4, 6), 16);
-		const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-		return luminance > 0.5 ? 'dark' : 'light';
-	}
-
-	const textColor = $derived(getContrastColor(note.color || '#fef3c7'));
-	const textColorClass = $derived(textColor === 'dark' ? 'text-gray-900' : 'text-gray-100');
-	const textColorMutedClass = $derived(textColor === 'dark' ? 'text-gray-700' : 'text-gray-300');
-	const textColorStrongClass = $derived(textColor === 'dark' ? 'text-gray-800' : 'text-gray-200');
+	// Text colors - always dark for better readability on light sticky notes
+	const textColorClass = 'text-gray-900';
+	const textColorMutedClass = 'text-gray-700';
+	const textColorStrongClass = 'text-gray-800';
 </script>
 
 <div
@@ -52,9 +42,6 @@
 	style="background-color: {note.color || '#fef3c7'};"
 	onclick={() => onClick?.(note)}
 >
-	<!-- Tape effect at the top -->
-	<div class="tape-effect absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-white/40 backdrop-blur-sm shadow-sm transform -rotate-1 z-10"></div>
-
 	<!-- Folded corner effect -->
 	<div class="folded-corner absolute top-0 right-0 w-0 h-0 border-t-[32px] border-r-[32px] border-t-black/5 border-r-transparent z-0"></div>
 
@@ -68,14 +55,15 @@
 
 	<!-- Delete icon on hover -->
 	<button
-		class="absolute -top-2 -right-2 z-20 p-1.5 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:scale-110"
+		class="absolute -top-2 -right-2 z-20 p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+		style="background-color: var(--card);"
 		onclick={(e) => {
 			e.stopPropagation();
 			onDelete?.(note);
 		}}
 		aria-label="Delete note"
 	>
-		<Trash2 class="h-3.5 w-3.5 text-gray-600 hover:text-red-600 transition-colors" />
+		<Trash2 class="h-3.5 w-3.5 transition-colors" style="color: var(--destructive);" />
 	</button>
 
 	<div class="flex items-start justify-between mb-2">
@@ -90,9 +78,13 @@
 				<MoreVertical class="h-4 w-4" />
 			</button>
 			{#if showMenu}
-				<div class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[140px]">
+				<div
+					class="absolute right-0 top-full mt-1 rounded-lg shadow-lg py-1 z-20 min-w-[140px]"
+					style="background-color: var(--popover); border-color: var(--border);"
+				>
 					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 text-left text-sm text-gray-800"
+						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 text-left text-sm transition-colors"
+						style="color: var(--popover-foreground);"
 						onclick={(e) => {
 							e.stopPropagation();
 							onTogglePin?.(note);
@@ -103,7 +95,8 @@
 						<span>{note.isPinned ? 'Unpin' : 'Pin'}</span>
 					</button>
 					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 text-left text-sm text-gray-800"
+						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 text-left text-sm transition-colors"
+						style="color: var(--popover-foreground);"
 						onclick={(e) => {
 							e.stopPropagation();
 							onArchive?.(note);
@@ -293,18 +286,23 @@
 	}
 
 	.markdown-content blockquote {
-		border-left-color: rgba(0, 0, 0, 0.2);
+		border-left: 4px solid rgba(0, 0, 0, 0.15);
+		padding-left: 1em;
+		margin: 0 0 1em 0;
 		color: inherit;
-		opacity: 0.8;
+		opacity: 0.85;
+		font-style: italic;
 	}
 
 	.markdown-content hr {
-		border-top-color: rgba(0, 0, 0, 0.2);
+		border: none;
+		border-top: 1px solid rgba(0, 0, 0, 0.15);
+		margin: 2em 0;
 	}
 
 	.markdown-content table th,
 	.markdown-content table td {
-		border-color: rgba(0, 0, 0, 0.15);
+		border: 1px solid rgba(0, 0, 0, 0.15);
 	}
 
 	.markdown-content table th {
@@ -316,7 +314,7 @@
 	}
 
 	.markdown-content details {
-		border-color: rgba(0, 0, 0, 0.15);
+		border: 1px solid rgba(0, 0, 0, 0.15);
 	}
 
 	.markdown-content strong {

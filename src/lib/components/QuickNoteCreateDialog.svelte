@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Label } from '$lib/components/ui/label';
-	import { StickyNote, Plus, X } from 'lucide-svelte';
+	import { StickyNote, Plus, X, Keyboard } from 'lucide-svelte';
 	import type { CreateQuickNoteInput } from '../../models/index.js';
 	import ColorPicker from '$lib/components/shared/color-picker.svelte';
 
@@ -22,6 +22,8 @@
 	let content = $state('');
 	let labels = $state<string[]>([]);
 	let labelInput = $state('');
+	let contentTextarea: HTMLTextAreaElement | undefined;
+	let hasUnsavedChanges = $state(false);
 
 	$effect(() => {
 		if (initialData) {
@@ -29,6 +31,22 @@
 			color = initialData.color;
 			content = initialData.content ?? '';
 			labels = initialData.labels ?? [];
+		}
+	});
+
+	// Track unsaved changes
+	$effect(() => {
+		if (content || title || labels.length > 0) {
+			hasUnsavedChanges = true;
+		} else {
+			hasUnsavedChanges = false;
+		}
+	});
+
+	// Autofocus content field when dialog opens
+	$effect(() => {
+		if (contentTextarea) {
+			contentTextarea.focus();
 		}
 	});
 
@@ -53,11 +71,27 @@
 			labels,
 			checklist: []
 		});
+		hasUnsavedChanges = false;
+	}
+
+	function handleClose() {
+		if (hasUnsavedChanges) {
+			const confirmed = confirm('You have unsaved changes. Are you sure you want to close?');
+			if (!confirmed) return;
+		}
+		onClose();
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+			e.preventDefault();
+			handleCreate();
+		}
 	}
 </script>
 
 <Dialog.Root open={true} onOpenChange={() => onClose()}>
-	<Dialog.Content class="max-w-lg max-h-[90vh] overflow-y-auto">
+	<Dialog.Content class="max-w-2xl max-h-[90vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-3">
 				<div class="p-2 bg-emerald-500/10 rounded-lg">
@@ -73,7 +107,7 @@
 			</Dialog.Title>
 		</Dialog.Header>
 
-		<div class="space-y-3">
+		<div class="space-y-4">
 			<div class="flex items-end gap-3">
 				<div class="flex-1">
 					<Label for="title">Title</Label>
@@ -108,19 +142,32 @@
 				/>
 			</div>
 
-			<div>
-				<Label for="content">Content</Label>
-				<Textarea
-					id="content"
-					bind:value={content}
-					placeholder="Write your note..."
-					class="min-h-[250px] resize-none"
-				/>
+			<div class="flex-1">
+				<Label for="content">Content <span class="text-muted-foreground text-xs font-normal">(Markdown supported)</span></Label>
+				<div class="relative">
+					<Textarea
+						id="content"
+						bind:value={content}
+						bind:this={contentTextarea}
+						placeholder="Write your note...&#10;&#10;Supports Markdown:&#10;**bold**, *italic*, `code`&#10;- lists&#10;# headings"
+						class="min-h-[350px] resize-y"
+						onkeydown={handleKeydown}
+					/>
+					<div class="absolute bottom-2 right-2 flex items-center gap-2">
+						<div class="flex items-center gap-1.5 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded border">
+							<Keyboard class="h-3 w-3" />
+							<span>Ctrl/Cmd+Enter to save</span>
+						</div>
+						<div class="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded border">
+							{content.length} chars
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onClose}>Cancel</Button>
+			<Button variant="outline" onclick={handleClose}>Cancel</Button>
 			<Button onclick={handleCreate} disabled={!content.trim()}>
 				{isEditing ? 'Save' : 'Create'}
 			</Button>
