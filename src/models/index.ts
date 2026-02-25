@@ -91,17 +91,17 @@ export interface QuickNoteChecklistItem {
 	isArchived: boolean;
 	labels: string[];
 	checklist: QuickNoteChecklistItem[];
+	position: number;
 	createdAt: number;
 	updatedAt: number;
 }
 
 export interface CreateQuickNoteInput {
-	userId: string;
+	userId?: string;
 	title?: string;
 	content: string;
 	color?: string;
 	labels?: string[];
-	checklist?: QuickNoteChecklistItem[];
 }
 
  export interface UpdateQuickNoteInput extends Partial<CreateQuickNoteInput> {

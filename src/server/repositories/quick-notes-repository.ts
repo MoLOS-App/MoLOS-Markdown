@@ -1,4 +1,4 @@
-import { and, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, desc, eq, like, or, sql, asc } from 'drizzle-orm';
 import { BaseRepository } from './base-repository.js';
 import { markdownQuickNotes } from '../db/schema/index.js';
 import type {
@@ -28,31 +28,32 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 	}
 };
 
-	const toJsonString = (value: unknown, fallback: string): string => {
-		if (value === null || value === undefined) return fallback;
-		return JSON.stringify(value);
-	};
+const toJsonString = (value: unknown, fallback: string): string => {
+	if (value === null || value === undefined) return fallback;
+	return JSON.stringify(value);
+};
 
-	const mapDbRowToNote = (row: Record<string, any>): QuickNote => {
-		return {
-			id: row.id,
-			userId: row.userId,
-			title: row.title ?? undefined,
-			content: row.content,
-			color: (row.color as any) ?? undefined,
-			isPinned: row.isPinned,
-			isArchived: row.isArchived,
-			labels: parseJsonArray(row.labels),
-			checklist: parseJsonArrayOf<QuickNoteChecklistItem>(row.checklist),
-			createdAt: row.createdAt || row.created_at,
-			updatedAt: row.updatedAt || row.updated_at
-		};
+const mapDbRowToNote = (row: Record<string, any>): QuickNote => {
+	return {
+		id: row.id,
+		userId: row.userId,
+		title: row.title ?? undefined,
+		content: row.content,
+		color: (row.color as any) ?? undefined,
+		isPinned: row.isPinned,
+		isArchived: row.isArchived,
+		labels: parseJsonArray(row.labels),
+		checklist: parseJsonArrayOf<QuickNoteChecklistItem>(row.checklist),
+		position: row.position ?? 0,
+		createdAt: row.createdAt || row.created_at,
+		updatedAt: row.updatedAt || row.updated_at
 	};
+};
 
-	export class QuickNotesRepository extends BaseRepository {
-		private mapRow(row: Record<string, any>): QuickNote {
-			return mapDbRowToNote(row);
-		}
+export class QuickNotesRepository extends BaseRepository {
+	private mapRow(row: Record<string, any>): QuickNote {
+		return mapDbRowToNote(row);
+	}
 
 	async listByUserId(
 		userId: string,
@@ -69,12 +70,12 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 			.from(markdownQuickNotes)
 			.where(and(...conditions));
 
-		let query;
-		if (options.pinnedFirst) {
-			query = baseQuery.orderBy(desc(markdownQuickNotes.isPinned), desc(markdownQuickNotes.updatedAt));
-		} else {
-			query = baseQuery.orderBy(desc(markdownQuickNotes.updatedAt));
-		}
+		// Order by position first, then by pinned status and updated date
+		const query = baseQuery.orderBy(
+			asc(markdownQuickNotes.position),
+			desc(markdownQuickNotes.isPinned),
+			desc(markdownQuickNotes.updatedAt)
+		);
 
 		const rows = await query;
 		return rows.map((row) => this.mapRow(row as any));
@@ -99,7 +100,7 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 			.select()
 			.from(markdownQuickNotes)
 			.where(and(...conditions))
-			.orderBy(desc(markdownQuickNotes.updatedAt));
+			.orderBy(asc(markdownQuickNotes.position), desc(markdownQuickNotes.updatedAt));
 
 		return rows.map((row) => this.mapRow(row as any));
 	}
@@ -119,16 +120,25 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 		const now = Math.floor(Date.now() / 1000);
 		const id = `QN-${Date.now()}`;
 
+		// Get count of existing notes for the user to set position
+		const countResult = await this.db
+			.select({ count: sql<number>`count(*)` })
+			.from(markdownQuickNotes)
+			.where(eq(markdownQuickNotes.userId, data.userId || ''));
+		
+		const position = (countResult[0]?.count ?? 0) + 1;
+
 		const insertData = {
 			id,
-			userId: data.userId,
+			userId: data.userId || '',
 			title: data.title,
 			content: data.content,
 			color: data.color,
 			isPinned: false,
 			isArchived: false,
 			labels: toJsonString(data.labels, '[]'),
-			checklist: toJsonString(data.checklist, '[]'),
+			checklist: '[]',
+			position,
 			createdAt: now,
 			updatedAt: now
 		};
@@ -153,9 +163,6 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 		if (updates.isArchived !== undefined) updateData.isArchived = updates.isArchived;
 		if (updates.labels !== undefined) {
 			updateData.labels = toJsonString(updates.labels, '[]');
-		}
-		if (updates.checklist !== undefined) {
-			updateData.checklist = toJsonString(updates.checklist, '[]');
 		}
 
 		const result = await this.db
@@ -190,26 +197,33 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 		return this.update(id, userId, { isArchived: !note.isArchived });
 	}
 
-	async updateChecklist(
-		id: string,
-		userId: string,
-		checklist: QuickNoteChecklistItem[]
-	): Promise<QuickNote | null> {
-		return this.update(id, userId, { checklist });
-	}
+	async reorder(sourceId: string, targetId: string, userId: string): Promise<QuickNote | null> {
+		// Get both notes
+		const sourceNote = await this.getById(sourceId, userId);
+		const targetNote = await this.getById(targetId, userId);
 
-	async toggleChecklistItem(
-		id: string,
-		userId: string,
-		itemId: string
-	): Promise<QuickNote | null> {
-		const note = await this.getById(id, userId);
-		if (!note) return null;
+		if (!sourceNote || !targetNote) return null;
 
-		const updatedChecklist = note.checklist.map((item) =>
-			item.id === itemId ? { ...item, isChecked: !item.isChecked } : item
-		);
+		// Simple swap: just swap their positions
+		const sourcePosition = sourceNote.position;
+		const targetPosition = targetNote.position;
 
-		return this.update(id, userId, { checklist: updatedChecklist });
+		const now = Math.floor(Date.now() / 1000);
+
+		// Update target to source position
+		await this.db
+			.update(markdownQuickNotes)
+			.set({ position: sourcePosition, updatedAt: now })
+			.where(eq(markdownQuickNotes.id, targetId));
+
+		// Update source to target position
+		const result = await this.db
+			.update(markdownQuickNotes)
+			.set({ position: targetPosition, updatedAt: now })
+			.where(eq(markdownQuickNotes.id, sourceId))
+			.returning();
+
+		if (!result[0]) return null;
+		return this.mapRow(result[0]);
 	}
 }

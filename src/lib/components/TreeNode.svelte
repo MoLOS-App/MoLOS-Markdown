@@ -113,9 +113,9 @@
 
 	<!-- Title and Path -->
 	<div class="flex flex-col flex-1 min-w-0">
-		<span class="text-xs sm:text-sm truncate">{node.title}</span>
+		<span class="text-sm truncate">{node.title}</span>
 		{#if node.path && node.path.length > 1 && node.path !== `/${node.slug}` && node.type === "folder"}
-			<span class="text-[10px] sm:text-xs text-muted-foreground truncate">{node.path}</span>
+			<span class="text-xs text-muted-foreground truncate">{node.path}</span>
 		{/if}
 	</div>
 

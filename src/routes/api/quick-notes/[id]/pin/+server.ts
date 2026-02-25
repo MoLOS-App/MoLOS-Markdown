@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from '../$types';
-import { QuickNotesRepository } from '../../../../server/repositories/index.js';
+import { QuickNotesRepository } from '../../../../../server/repositories/index.js';
 import { db } from '$lib/server/db';
 
 export const POST: RequestHandler = async ({ locals, params }) => {

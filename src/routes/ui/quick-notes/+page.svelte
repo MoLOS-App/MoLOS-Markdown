@@ -58,6 +58,9 @@
 			);
 		}
 
+		// Sort by position (ascending)
+		result.sort((a, b) => a.position - b.position);
+
 		return result;
 	});
 
@@ -106,6 +109,17 @@
 		}
 	}
 
+	async function handleTogglePin(note: QuickNote) {
+		const response = await fetch(`/api/MoLOS-Markdown/quick-notes/${note.id}/pin`, {
+			method: 'POST'
+		});
+
+		if (response.ok) {
+			const updated = await response.json();
+			quickNotes.update(notes => notes.map(n => n.id === note.id ? updated : n));
+		}
+	}
+
 	async function handleDelete(note: QuickNote) {
 		noteToDelete = note;
 		showDeleteDialog = true;
@@ -131,67 +145,84 @@
 		noteToEdit = note;
 		showEditDialog = true;
 	}
+
+	async function handleReorder(sourceId: string, targetId: string) {
+		const response = await fetch('/api/MoLOS-Markdown/quick-notes/reorder', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ sourceId, targetId })
+		});
+
+		if (response.ok) {
+			// Refresh notes to get updated positions
+			const notesResponse = await fetch('/api/MoLOS-Markdown/quick-notes');
+			if (notesResponse.ok) {
+				const notes = await notesResponse.json();
+				quickNotes.set(notes);
+			}
+		}
+	}
 </script>
 
-<div class="min-h-screen" style="background: linear-gradient(to bottom right, var(--background), var(--background), rgba(var(--muted-foreground), 0.1));">
-	<header class="border-b px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10" style="background-color: rgba(from var(--card) r g b / 0.8); backdrop-filter: blur(8px);">
-		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6 w-full">
-			<div class="flex items-center gap-3 sm:gap-6 flex-1 w-full sm:w-auto">
-				<div class="flex items-center gap-3 flex-shrink-0">
-					<div class="p-2 bg-emerald-500/10 rounded-lg">
-						<StickyNote class="h-5 w-5 text-emerald-500" />
+<div class="min-h-screen">
+	<header class="sticky top-0 z-10 px-4 py-3 border-b sm:px-6 sm:py-4">
+		<div class="flex flex-col items-start justify-between w-full gap-3 sm:flex-row sm:items-center sm:gap-6">
+			<div class="flex items-center justify-between flex-1 w-full gap-3 sm:gap-6 sm:w-auto">
+				<div class="flex items-center flex-shrink-0 gap-3">
+					<div class="p-2 rounded-lg bg-emerald-500/10">
+						<StickyNote class="w-5 h-5 text-emerald-500" />
 					</div>
 					<div class="flex flex-col">
-						<h1 class="text-lg sm:text-xl font-bold tracking-tight">Quick Notes</h1>
-						<p class="text-xs sm:text-sm text-muted-foreground hidden sm:block">Capture your thoughts</p>
+						<h1 class="text-lg font-bold tracking-tight sm:text-xl">Quick Notes</h1>
+						<p class="hidden text-xs sm:text-sm text-muted-foreground sm:block">Capture your thoughts</p>
 					</div>
+				<div class="hidden w-px h-8 bg-border sm:block"></div>
 				</div>
 
-				<div class="h-8 w-px bg-border hidden sm:block"></div>
 
-				<div class="relative w-full sm:flex-1 sm:max-w-md">
-					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+				<div class="relative w-full mx-12 sm:flex-1 sm:max-w-full">
+					<Search class="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-muted-foreground" />
 					<Input
 						oninput={(e) => searchQuery = e.target.value}
 						placeholder="Search notes..."
-						class="pl-10 h-9 sm:h-10 bg-muted/50 border-muted focus-visible:bg-background transition-colors"
+						class="pl-10 transition-colors h-9 sm:h-10 bg-muted/50 border-muted focus-visible:bg-background"
 					/>
 				</div>
 
-				<div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+				<div class="flex items-center justify-between w-full gap-2 sm:gap-3 sm:w-auto sm:justify-end">
 					<Button
 						variant="default"
-						class="h-9 sm:h-10 hidden sm:flex"
+						class="hidden h-9 sm:h-10 sm:flex"
 						onclick={() => showCreateDialog = true}
 					>
-						<Plus class="h-4 w-4 mr-2" />
+						<Plus class="w-4 h-4 mr-2" />
 						Create Note
 					</Button>
 
 					<Select bind:value={activeFilter}>
 						<SelectTrigger class="w-[140px] sm:w-[160px] h-9 sm:h-10">
 							{#if activeFilter === 'pinned'}
-								<Pin class="h-4 w-4 sm:mr-2" />
+								<Pin class="w-4 h-4 sm:mr-2" />
 								<span>Pinned</span>
 							{:else if activeFilter === 'archived'}
-								<Archive class="h-4 w-4 sm:mr-2" />
+								<Archive class="w-4 h-4 sm:mr-2" />
 								<span>Archived</span>
 							{:else}
-								<Grid class="h-4 w-4 sm:mr-2" />
+								<Grid class="w-4 h-4 sm:mr-2" />
 								<span>All</span>
 							{/if}
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">
-								<Grid class="h-4 w-4 mr-2" />
+								<Grid class="w-4 h-4 mr-2" />
 								<span>All</span>
 							</SelectItem>
 							<SelectItem value="pinned">
-								<Pin class="h-4 w-4 mr-2" />
+								<Pin class="w-4 h-4 mr-2" />
 								<span>Pinned</span>
 							</SelectItem>
 							<SelectItem value="archived">
-								<Archive class="h-4 w-4 mr-2" />
+								<Archive class="w-4 h-4 mr-2" />
 								<span>Archived</span>
 							</SelectItem>
 						</SelectContent>
@@ -205,34 +236,34 @@
 						aria-label="Toggle view mode"
 					>
 						{#if viewMode === 'masonry'}
-							<List class="h-5 w-5" />
+							<List class="w-5 h-5" />
 						{:else}
-							<Grid class="h-5 w-5" />
+							<Grid class="w-5 h-5" />
 						{/if}
 					</Button>
 				</div>
 			</div>
 		</header>
 
-	<main class="flex-1 overflow-y-auto p-4 sm:p-6" style="background-color: rgba(from var(--muted) r g b / 0.3); backdrop-filter: blur(4px);">
+	<main class="flex-1 p-4 overflow-y-auto sm:p-6">
 		{#if $quickNotes.length === 0}
 			<div class="flex-1 flex items-center justify-center min-h-[400px]">
-				<div class="text-center max-w-md">
-					<div class="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
-						<StickyNote class="h-8 w-8 sm:h-10 sm:w-10 text-emerald-500/50" />
+				<div class="max-w-md text-center">
+					<div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 sm:w-20 sm:h-20 sm:mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+						<StickyNote class="w-8 h-8 sm:h-10 sm:w-10 text-emerald-500/50" />
 					</div>
-					<h3 class="text-lg sm:text-xl font-bold mb-2 tracking-tight">No notes yet</h3>
-					<p class="text-muted-foreground text-xs sm:text-sm mb-4 sm:mb-6">
-						Create your first quick note. Use colors, checklists, and markdown to organize your thoughts.
+					<h3 class="mb-2 text-lg font-bold tracking-tight sm:text-xl">No notes yet</h3>
+					<p class="mb-4 text-xs text-muted-foreground sm:text-sm sm:mb-6">
+						Create your first quick note. Use colors and markdown to organize your thoughts.
 					</p>
 					<Button onclick={() => showCreateDialog = true}>
-						<Plus class="h-4 w-4 sm:mr-2" />
+						<Plus class="w-4 h-4 sm:mr-2" />
 						Create Note
 					</Button>
 				</div>
 			</div>
 		{:else}
-			<div class="max-w-7xl mx-auto">
+			<div class="mx-auto max-w-7xl">
 				{#if viewMode === 'masonry'}
 					<div class="notes-grid">
 						{#each filteredNotes() as note}
@@ -240,18 +271,22 @@
 								{note}
 								onClick={handleNoteClick}
 								onArchive={handleArchive}
+								onTogglePin={handleTogglePin}
 								onDelete={handleDelete}
+								onReorder={handleReorder}
 							/>
 						{/each}
 					</div>
 				{:else}
-					<div class="space-y-2 max-w-3xl mx-auto">
+					<div class="max-w-3xl mx-auto space-y-2">
 						{#each filteredNotes() as note}
 							<QuickNoteCard
 								{note}
 								onClick={handleNoteClick}
 								onArchive={handleArchive}
+								onTogglePin={handleTogglePin}
 								onDelete={handleDelete}
+								onReorder={handleReorder}
 							/>
 						{/each}
 					</div>
@@ -260,10 +295,10 @@
 		{/if}
 	</main>
 
-	<div class="fixed bottom-6 right-6 z-20">
+	<div class="fixed z-20 bottom-6 right-6">
 		<Button
 			size="lg"
-			class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 bg-emerald-500 hover:bg-emerald-600"
+			class="transition-all duration-200 rounded-full shadow-lg h-14 w-14 hover:shadow-xl hover:scale-105 bg-emerald-500 hover:bg-emerald-600"
 			onclick={() => showCreateDialog = true}
 			aria-label="Create new note"
 		>
@@ -294,11 +329,11 @@
 			onclick={() => showDeleteDialog = false}
 		>
 			<div
-				class="rounded-xl shadow-2xl p-6 max-w-sm mx-4"
+				class="max-w-sm p-6 mx-4 shadow-2xl rounded-xl"
 				style="background-color: var(--popover);"
 				onclick={(e) => e.stopPropagation()}
 			>
-				<h3 class="text-lg font-semibold mb-2" style="color: var(--foreground);">Delete Note?</h3>
+				<h3 class="mb-2 text-lg font-semibold" style="color: var(--foreground);">Delete Note?</h3>
 				<p class="mb-6 text-sm" style="color: var(--muted-foreground);">
 					This note will be permanently deleted. This action cannot be undone.
 				</p>

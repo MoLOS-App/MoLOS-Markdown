@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { X, Sparkles, Edit3, Hash, Check, AlertTriangle } from 'lucide-svelte';
+	import { X, Sparkles, Edit3, Hash, Check, AlertTriangle, Pencil } from 'lucide-svelte';
 	import type { CreateQuickNoteInput } from '../../models/index.js';
 	import ColorPicker from '$lib/components/shared/color-picker.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Button } from '$lib/components/ui/button';
+	import { marked } from 'marked';
 
 	interface Props {
 		onCreate: (data: CreateQuickNoteInput) => void;
@@ -24,12 +25,15 @@
 	let isOpen = $state(false);
 	let focusedField = $state<'title' | 'content' | 'labels' | null>(null);
 	let showDiscardDialog = $state(false);
+	let isEditingContent = $state(false);
+	let originalTitle = $state<string | undefined>('');
+	let originalContent = $state('');
+	let originalLabels = $state<string[]>([]);
 
 	const MAX_CONTENT_LENGTH = 10000;
 	const contentLength = $derived(content.length);
 	const isOverLimit = $derived(contentLength > MAX_CONTENT_LENGTH);
 
-	// Color to note style mapping - creates cohesive note appearance
 	const noteStyles: Record<string, { bg: string; text: string; border: string; accent: string }> = {
 		'#fef3c7': { bg: '#fef3c7', text: '#78350f', border: '#fcd34d', accent: '#d97706' },
 		'#fecaca': { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', accent: '#dc2626' },
@@ -47,6 +51,7 @@
 	};
 
 	const currentStyle = $derived(noteStyles[color || '#fef3c7'] || noteStyles['#fef3c7']);
+	const renderedContent = $derived(content ? marked(content) : '');
 
 	$effect(() => {
 		if (initialData) {
@@ -54,27 +59,29 @@
 			color = initialData.color || '#fef3c7';
 			content = initialData.content ?? '';
 			labels = initialData.labels ?? [];
+			isEditingContent = !isEditing;
+			originalTitle = initialData.title;
+			originalContent = initialData.content ?? '';
+			originalLabels = initialData.labels ?? [];
 		}
 	});
 
-	// Animate in on mount
 	$effect(() => {
 		requestAnimationFrame(() => {
 			isOpen = true;
 		});
-		// Focus content after animation
 		setTimeout(() => {
-			contentEl?.focus();
+			if (isEditing) {
+				contentEl?.focus();
+			}
 		}, 200);
 	});
 
-	// Track unsaved changes
 	$effect(() => {
-		if (content || title || labels.length > 0) {
-			hasUnsavedChanges = true;
-		} else {
-			hasUnsavedChanges = false;
-		}
+		const titleChanged = title !== originalTitle;
+		const contentChanged = content !== originalContent;
+		const labelsChanged = JSON.stringify(labels) !== JSON.stringify(originalLabels);
+		hasUnsavedChanges = titleChanged || contentChanged || labelsChanged;
 	});
 
 	function addLabel() {
@@ -96,8 +103,7 @@
 			title,
 			content,
 			color,
-			labels,
-			checklist: []
+			labels
 		});
 		hasUnsavedChanges = false;
 	}
@@ -142,25 +148,32 @@
 		}
 	}
 
-	// Handle content editable input
 	function handleContentInput(e: Event) {
 		const target = e.target as HTMLDivElement;
 		content = target.innerText || '';
 	}
 
-	// Sync content to contenteditable on initial load
 	$effect(() => {
-		if (contentEl && content && contentEl.innerText !== content) {
+		if (contentEl && content && contentEl.innerText !== content && isEditingContent) {
 			contentEl.innerText = content;
 		}
 	});
+
+	function startEditing() {
+		isEditingContent = true;
+		setTimeout(() => {
+			if (contentEl && content) {
+				contentEl.innerText = content;
+			}
+			contentEl?.focus();
+		}, 0);
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- Backdrop with blur -->
 <div
-	class="fixed inset-0 z-50 flex items-start justify-center pt-[3vh] sm:pt-[8vh] px-3 sm:px-4 transition-all duration-300 ease-out {isOpen
+	class="fixed inset-0 z-50 flex items-center justify-center px-3 sm:px-4 transition-all duration-300 ease-out {isOpen
 		? 'bg-black/50 backdrop-blur-sm opacity-100'
 		: 'bg-transparent opacity-0 pointer-events-none'}"
 	onclick={handleBackdropClick}
@@ -168,9 +181,8 @@
 	aria-modal="true"
 	aria-labelledby="note-dialog-title"
 >
-	<!-- Note Card -->
 	<div
-		class="w-full max-w-lg max-h-[85vh] rounded-2xl shadow-2xl transition-all duration-300 ease-out transform relative flex flex-col {isOpen
+		class="w-full max-w-lg max-h-[85vh] rounded-2xl shadow-2xl transition-all duration-300 ease-out transform relative flex flex-col overflow-hidden {isOpen
 			? 'opacity-100 scale-100 translate-y-0'
 			: 'opacity-0 scale-95 translate-y-6'}"
 		style="
@@ -182,8 +194,6 @@
 				inset 0 1px 0 rgba(255,255,255,0.3);
 		"
 	>
-
-		<!-- Header Bar -->
 		<div
 			class="relative flex items-center justify-between px-4 sm:px-5 py-2.5 border-b transition-colors duration-200"
 			style="border-color: {currentStyle.border}40;"
@@ -205,12 +215,10 @@
 			</div>
 
 			<div class="flex items-center gap-1.5">
-				<!-- Color Picker -->
 				<div class="scale-90 origin-center">
 					<ColorPicker selected={color} onSelect={(c) => (color = c)} size="sm" />
 				</div>
 
-				<!-- Close Button -->
 				<button
 					type="button"
 					onclick={handleClose}
@@ -223,9 +231,7 @@
 			</div>
 		</div>
 
-		<!-- Note Content Area -->
-		<div class="relative p-4 sm:p-5 space-y-1">
-			<!-- Title Field - Seamless -->
+		<div class="relative p-4 sm:p-5 space-y-1 overflow-y-auto flex-1">
 			<div
 				class="group -mx-1 px-1 py-0.5 -mt-1 rounded-lg transition-all duration-200 {focusedField ===
 				'title'
@@ -243,41 +249,72 @@
 				/>
 			</div>
 
-			<!-- Content Field - Seamless contenteditable -->
 			<div
 				class="group -mx-1 px-1 py-1 rounded-lg transition-all duration-200 {focusedField === 'content'
 					? 'ring-2 ring-inset'
 					: 'hover:bg-black/5'}"
 				style="--tw-ring-color: {currentStyle.accent}30;"
 			>
-				<div
-					bind:this={contentEl}
-					contenteditable="true"
-					class="w-full min-h-[180px] max-h-[45vh] overflow-y-auto bg-transparent text-sm sm:text-base leading-relaxed placeholder:opacity-35 focus:outline-none whitespace-pre-wrap break-words"
-					style="color: {currentStyle.text};"
-					onfocus={() => (focusedField = 'content')}
-					onblur={() => (focusedField = null)}
-					oninput={handleContentInput}
-					role="textbox"
-					aria-multiline="true"
-					aria-label="Note content"
-					data-placeholder="Start typing..."
-				></div>
+				{#if isEditingContent}
+					<div
+						bind:this={contentEl}
+						contenteditable="true"
+						class="w-full min-h-[180px] max-h-[45vh] overflow-y-auto bg-transparent text-sm sm:text-base leading-relaxed placeholder:opacity-35 focus:outline-none whitespace-pre-wrap break-words scroll-smooth"
+						style="color: {currentStyle.text};"
+						onfocus={() => (focusedField = 'content')}
+						onblur={() => (focusedField = null)}
+						oninput={handleContentInput}
+						role="textbox"
+						aria-multiline="true"
+						aria-label="Note content"
+						data-placeholder="Start typing..."
+					></div>
+				{:else}
+					<div
+						class="w-full min-h-[180px] max-h-[45vh] overflow-y-auto text-sm sm:text-base leading-relaxed cursor-text prose prose-sm scroll-smooth"
+						style="color: {currentStyle.text};"
+						onclick={startEditing}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								startEditing();
+							}
+						}}
+						role="button"
+						tabindex="0"
+					>
+						{#if content}
+							{@html renderedContent}
+						{:else}
+							<span class="opacity-35">Click to add content...</span>
+						{/if}
+					</div>
+				{/if}
 
-				<!-- Character count - subtle, appears on focus -->
 				<div
-					class="flex justify-end mt-1.5 text-[10px] tabular-nums transition-all duration-200 {focusedField ===
-					'content'
+					class="flex justify-between items-center mt-1.5 text-[10px] tabular-nums transition-all duration-200 {focusedField ===
+					'content' || isEditingContent
 						? 'opacity-50'
 						: 'opacity-0'}"
 				>
+					{#if !isEditingContent && content}
+						<button
+							type="button"
+							onclick={startEditing}
+							class="flex items-center gap-1 hover:opacity-100 transition-opacity"
+						>
+							<Pencil class="w-3 h-3" />
+							Edit
+						</button>
+					{:else}
+						<span></span>
+					{/if}
 					<span class={isOverLimit ? 'text-red-600 font-semibold' : ''}>
 						{contentLength}/{MAX_CONTENT_LENGTH}
 					</span>
 				</div>
 			</div>
 
-			<!-- Labels Row - Seamless inline -->
 			<div
 				class="group -mx-1 px-1 py-1.5 -mb-1 rounded-lg transition-all duration-200 {focusedField ===
 				'labels'
@@ -288,7 +325,6 @@
 				<div class="flex items-center gap-1.5 flex-wrap">
 					<Hash class="w-3 h-3 opacity-40 flex-shrink-0" />
 
-					<!-- Existing labels -->
 					{#each labels as label}
 						<span
 							class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all duration-200 hover:shadow-sm"
@@ -306,7 +342,6 @@
 						</span>
 					{/each}
 
-					<!-- Label input -->
 					{#if labels.length < 10}
 						<input
 							bind:value={labelInput}
@@ -327,7 +362,6 @@
 						/>
 					{/if}
 
-					<!-- Label count badge -->
 					{#if labels.length > 0}
 						<span
 							class="text-[9px] px-1.5 py-0.5 rounded-full ml-auto opacity-40"
@@ -340,12 +374,10 @@
 			</div>
 		</div>
 
-		<!-- Footer - Actions -->
 		<div
 			class="relative flex items-center justify-between px-4 sm:px-5 py-2.5 border-t transition-colors duration-200"
 			style="border-color: {currentStyle.border}30;"
 		>
-			<!-- Keyboard hint -->
 			<div class="hidden sm:flex items-center gap-1 text-[10px] opacity-40">
 				<kbd
 					class="px-1 py-0.5 rounded font-mono"
@@ -363,12 +395,11 @@
 			</div>
 			<div class="sm:hidden"></div>
 
-			<!-- Action buttons -->
 			<div class="flex items-center gap-2 ml-auto">
 				<button
 					type="button"
 					onclick={handleClose}
-					class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-black/8 opacity-60 hover:opacity-100"
+					class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-black/8 opacity-60 hover:opacity-100 active:scale-[0.97]"
 				>
 					Cancel
 				</button>
@@ -390,7 +421,6 @@
 			</div>
 		</div>
 
-		<!-- Subtle bottom shadow line -->
 		<div
 			class="absolute bottom-0 left-4 right-4 h-px rounded-full opacity-30"
 			style="background: linear-gradient(90deg, transparent, {currentStyle.border}, transparent);"
@@ -398,7 +428,6 @@
 	</div>
 </div>
 
-<!-- Discard Changes Alert Dialog -->
 <AlertDialog.Root bind:open={showDiscardDialog}>
 	<AlertDialog.Content class="max-w-sm">
 		<AlertDialog.Header>
@@ -413,47 +442,23 @@
 			You have unsaved changes. If you close now, your changes will be lost.
 		</AlertDialog.Description>
 		<AlertDialog.Footer class="gap-2 sm:gap-0">
-			<AlertDialog.Cancel asChild let:builder>
-				<Button variant="outline" {...builder} onclick={cancelDiscard}>
-					Keep editing
-				</Button>
+			<AlertDialog.Cancel onclick={cancelDiscard}>
+				Keep editing
 			</AlertDialog.Cancel>
-			<AlertDialog.Action asChild let:builder>
-				<Button variant="destructive" {...builder} onclick={confirmDiscard}>
-					Discard
-				</Button>
+			<AlertDialog.Action onclick={confirmDiscard}>
+				Discard
 			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
 
 <style>
-	/* Placeholder for contenteditable */
 	[contenteditable]:empty:before {
 		content: attr(data-placeholder);
 		opacity: 0.35;
 		pointer-events: none;
 	}
 
-	/* Smooth scrollbar for content */
-	[contenteditable]::-webkit-scrollbar {
-		width: 5px;
-	}
-
-	[contenteditable]::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	[contenteditable]::-webkit-scrollbar-thumb {
-		background: rgba(0, 0, 0, 0.12);
-		border-radius: 3px;
-	}
-
-	[contenteditable]::-webkit-scrollbar-thumb:hover {
-		background: rgba(0, 0, 0, 0.2);
-	}
-
-	/* Focus ring animation */
 	.group:focus-within {
 		animation: focus-pulse 0.2s ease-out;
 	}
@@ -465,10 +470,5 @@
 		100% {
 			opacity: 1;
 		}
-	}
-
-	/* Button press effect */
-	button:active:not(:disabled) {
-		transform: scale(0.97);
 	}
 </style>

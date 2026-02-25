@@ -59,6 +59,7 @@ export const markdownQuickNotes = sqliteTable(
 		isArchived: integer("is_archived", { mode: "boolean" }).notNull().default(false),
 		labels: text("labels").notNull().default("[]"),
 		checklist: text("checklist").notNull().default("[]"),
+		position: integer("position").notNull().default(0),
 		createdAt: integer("created_at").notNull().default(sql`(strftime('%s','now'))`),
 		updatedAt: integer("updated_at").notNull().default(sql`(strftime('%s','now'))`)
 	},
@@ -66,6 +67,7 @@ export const markdownQuickNotes = sqliteTable(
 		userIdIdx: index("idx_quick_notes_user_id").on(table.userId),
 		pinnedIdx: index("idx_quick_notes_pinned").on(table.isPinned),
 		archivedIdx: index("idx_quick_notes_archived").on(table.isArchived),
+		positionIdx: index("idx_quick_notes_position").on(table.position),
 		updatedAtIdx: index("idx_quick_notes_updated_at").on(table.updatedAt)
 	})
 );
