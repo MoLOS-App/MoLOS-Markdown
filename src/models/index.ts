@@ -81,12 +81,12 @@ export interface QuickNoteChecklistItem {
 	sortOrder?: number;
 }
 
-export interface QuickNote {
+ export interface QuickNote {
 	id: string;
 	userId: string;
 	title?: string;
 	content: string;
-	color?: NoteColor;
+	color?: string;
 	isPinned: boolean;
 	isArchived: boolean;
 	labels: string[];
@@ -99,12 +99,13 @@ export interface CreateQuickNoteInput {
 	userId: string;
 	title?: string;
 	content: string;
-	color?: NoteColor;
+	color?: string;
 	labels?: string[];
 	checklist?: QuickNoteChecklistItem[];
 }
 
-export interface UpdateQuickNoteInput extends Partial<CreateQuickNoteInput> {
+ export interface UpdateQuickNoteInput extends Partial<CreateQuickNoteInput> {
+	id?: string;
 	isPinned?: boolean;
 	isArchived?: boolean;
 }

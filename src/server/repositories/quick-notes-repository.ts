@@ -28,13 +28,12 @@ const parseJsonArrayOf = <T>(value: string | null | undefined): T[] => {
 	}
 };
 
-const toJsonString = (value: unknown, fallback: string): string => {
-	if (value === null || value === undefined) return fallback;
-	return JSON.stringify(value);
-};
+	const toJsonString = (value: unknown, fallback: string): string => {
+		if (value === null || value === undefined) return fallback;
+		return JSON.stringify(value);
+	};
 
-export class QuickNotesRepository extends BaseRepository {
-	private mapRow(row: typeof markdownQuickNotes.$inferSelect): QuickNote {
+	const mapDbRowToNote = (row: Record<string, any>): QuickNote => {
 		return {
 			id: row.id,
 			userId: row.userId,
@@ -45,10 +44,15 @@ export class QuickNotesRepository extends BaseRepository {
 			isArchived: row.isArchived,
 			labels: parseJsonArray(row.labels),
 			checklist: parseJsonArrayOf<QuickNoteChecklistItem>(row.checklist),
-			createdAt: row.createdAt,
-			updatedAt: row.updatedAt
+			createdAt: row.createdAt || row.created_at,
+			updatedAt: row.updatedAt || row.updated_at
 		};
-	}
+	};
+
+	export class QuickNotesRepository extends BaseRepository {
+		private mapRow(row: Record<string, any>): QuickNote {
+			return mapDbRowToNote(row);
+		}
 
 	async listByUserId(
 		userId: string,
@@ -73,7 +77,7 @@ export class QuickNotesRepository extends BaseRepository {
 		}
 
 		const rows = await query;
-		return rows.map((row) => this.mapRow(row));
+		return rows.map((row) => this.mapRow(row as any));
 	}
 
 	async searchByUserId(
@@ -97,38 +101,41 @@ export class QuickNotesRepository extends BaseRepository {
 			.where(and(...conditions))
 			.orderBy(desc(markdownQuickNotes.updatedAt));
 
-		return rows.map((row) => this.mapRow(row));
+		return rows.map((row) => this.mapRow(row as any));
 	}
 
 	async getById(id: string, userId: string): Promise<QuickNote | null> {
-		const rows = await this.db
+		const result = await this.db
 			.select()
 			.from(markdownQuickNotes)
 			.where(and(eq(markdownQuickNotes.id, id), eq(markdownQuickNotes.userId, userId)))
 			.limit(1);
 
-		return rows[0] ? this.mapRow(rows[0]) : null;
+		if (!result[0]) return null;
+		return this.mapRow(result[0]);
 	}
 
 	async create(data: CreateQuickNoteInput): Promise<QuickNote> {
 		const now = Math.floor(Date.now() / 1000);
 		const id = `QN-${Date.now()}`;
 
+		const insertData = {
+			id,
+			userId: data.userId,
+			title: data.title,
+			content: data.content,
+			color: data.color,
+			isPinned: false,
+			isArchived: false,
+			labels: toJsonString(data.labels, '[]'),
+			checklist: toJsonString(data.checklist, '[]'),
+			createdAt: now,
+			updatedAt: now
+		};
+
 		const result = await this.db
 			.insert(markdownQuickNotes)
-			.values({
-				id,
-				userId: data.userId,
-				title: data.title,
-				content: data.content,
-				color: data.color,
-				isPinned: false,
-				isArchived: false,
-				labels: toJsonString(data.labels, '[]'),
-				checklist: toJsonString(data.checklist, '[]'),
-				createdAt: now,
-				updatedAt: now
-			})
+			.values(insertData as any)
 			.returning();
 
 		const row = result[0];
@@ -137,7 +144,7 @@ export class QuickNotesRepository extends BaseRepository {
 
 	async update(id: string, userId: string, updates: UpdateQuickNoteInput): Promise<QuickNote | null> {
 		const now = Math.floor(Date.now() / 1000);
-		const updateData: Record<string, unknown> = { updatedAt: now };
+		const updateData: Record<string, any> = { updatedAt: now };
 
 		if (updates.title !== undefined) updateData.title = updates.title;
 		if (updates.content !== undefined) updateData.content = updates.content;
@@ -151,12 +158,14 @@ export class QuickNotesRepository extends BaseRepository {
 			updateData.checklist = toJsonString(updates.checklist, '[]');
 		}
 
-		await this.db
+		const result = await this.db
 			.update(markdownQuickNotes)
-			.set(updateData)
-			.where(and(eq(markdownQuickNotes.id, id), eq(markdownQuickNotes.userId, userId)));
+			.set(updateData as any)
+			.where(and(eq(markdownQuickNotes.id, id), eq(markdownQuickNotes.userId, userId)))
+			.returning();
 
-		return this.getById(id, userId);
+		if (!result[0]) return null;
+		return this.mapRow(result[0]);
 	}
 
 	async delete(id: string, userId: string): Promise<boolean> {

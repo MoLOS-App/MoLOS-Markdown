@@ -11,10 +11,10 @@ const ChecklistItemSchema = z.object({
 	sortOrder: z.number().optional()
 });
 
-const CreateNoteSchema = z.object({
+ const CreateNoteSchema = z.object({
 	title: z.string().optional(),
 	content: z.string().min(1, 'Content is required'),
-	color: z.enum(['default', 'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'dark-blue', 'purple', 'pink', 'brown', 'gray']).optional(),
+	color: z.string().optional(),
 	labels: z.array(z.string()).optional(),
 	checklist: z.array(ChecklistItemSchema).optional()
 });

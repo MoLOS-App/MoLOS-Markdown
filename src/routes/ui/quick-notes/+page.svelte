@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PageServerLoad } from './$types';
 	import type { QuickNote } from '../../../models/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { StickyNote, Plus, Search, Archive, Pin, Grid, List, X as CloseIcon } from 'lucide-svelte';
-	import { QuickNoteCard } from '../../../lib/components/QuickNoteCard.svelte';
-	import QuickNoteCreateDialog from '../../../lib/components/QuickNoteCreateDialog.svelte';
+	import { QuickNoteCard, QuickNoteCreateDialog } from '../../../lib/components';
 	import { quickNotes, selectNote } from '../../../stores';
 	import {
 		Select,
@@ -22,11 +22,22 @@
 
 	let showDeleteDialog = $state(false);
 	let noteToDelete = $state<QuickNote | null>(null);
+	let showEditDialog = $state(false);
+	let noteToEdit = $state<QuickNote | null>(null);
 	let viewMode = $state<'masonry' | 'list'>('masonry');
 
 	let activeFilter = $state<'all' | 'pinned' | 'archived'>('all');
 	let searchQuery = $state('');
 	let showCreateDialog = $state(false);
+
+	onMount(async () => {
+		const response = await fetch('/api/MoLOS-Markdown/quick-notes');
+		if (response.ok) {
+			const notes = await response.json();
+			quickNotes.set(notes);
+		}
+	});
+
 	let filteredNotes = $derived(() => {
 		let result = [...$quickNotes];
 
@@ -63,6 +74,24 @@
 		if (response.ok) {
 			const newNote = await response.json();
 			quickNotes.update(notes => [newNote, ...notes]);
+			showCreateDialog = false;
+		}
+	}
+
+	async function handleUpdate(noteData: any) {
+		if (!noteToEdit) return;
+
+		const response = await fetch(`/api/MoLOS-Markdown/quick-notes/${noteToEdit.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: noteToEdit.id, ...noteData })
+		});
+
+		if (response.ok) {
+			const updated = await response.json();
+			quickNotes.update(notes => notes.map(n => n.id === noteToEdit.id ? updated : n));
+			showEditDialog = false;
+			noteToEdit = null;
 		}
 	}
 
@@ -99,7 +128,8 @@
 	}
 
 	function handleNoteClick(note: QuickNote) {
-		selectNote(note);
+		noteToEdit = note;
+		showEditDialog = true;
 	}
 </script>
 
@@ -129,6 +159,15 @@
 				</div>
 
 				<div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+					<Button
+						variant="default"
+						class="h-9 sm:h-10 hidden sm:flex"
+						onclick={() => showCreateDialog = true}
+					>
+						<Plus class="h-4 w-4 mr-2" />
+						Create Note
+					</Button>
+
 					<Select bind:value={activeFilter}>
 						<SelectTrigger class="w-[140px] sm:w-[160px] h-9 sm:h-10">
 							{#if activeFilter === 'pinned'}
@@ -236,6 +275,15 @@
 		<QuickNoteCreateDialog
 			onCreate={handleCreate}
 			onClose={() => showCreateDialog = false}
+		/>
+	{/if}
+
+	{#if showEditDialog && noteToEdit}
+		<QuickNoteCreateDialog
+			onCreate={handleUpdate}
+			onClose={() => { showEditDialog = false; noteToEdit = null; }}
+			initialData={noteToEdit}
+			isEditing={true}
 		/>
 	{/if}
 

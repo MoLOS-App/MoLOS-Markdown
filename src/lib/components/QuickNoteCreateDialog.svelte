@@ -4,10 +4,9 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Label } from '$lib/components/ui/label';
-	import { StickyNote, Plus, Trash2, Check, X } from 'lucide-svelte';
-	import type { QuickNoteChecklistItem, NoteColor, CreateQuickNoteInput } from '../../models/index.js';
-	import { marked } from 'marked';
-	import ColorPicker from './ColorPicker.svelte';
+	import { StickyNote, Plus, X } from 'lucide-svelte';
+	import type { CreateQuickNoteInput } from '../../models/index.js';
+	import ColorPicker from '$lib/components/shared/color-picker.svelte';
 
 	interface Props {
 		onCreate: (data: CreateQuickNoteInput) => void;
@@ -18,93 +17,47 @@
 
 	let { onCreate, onClose, initialData = {}, isEditing = false }: Props = $props();
 
-	let formData = $state<CreateQuickNoteInput>({
-		content: '',
-		title: undefined,
-		color: undefined,
-		labels: [],
-		checklist: []
-	});
+	let title = $state<string | undefined>('');
+	let color = $state<string | undefined>();
+	let content = $state('');
+	let labels = $state<string[]>([]);
+	let labelInput = $state('');
 
 	$effect(() => {
 		if (initialData) {
-			formData.content = initialData.content ?? '';
-			formData.title = initialData.title;
-			formData.color = initialData.color;
-			formData.labels = initialData.labels ?? [];
-			formData.checklist = initialData.checklist ?? [];
+			title = initialData.title;
+			color = initialData.color;
+			content = initialData.content ?? '';
+			labels = initialData.labels ?? [];
 		}
 	});
 
-	let tagInput = $state('');
-
-	const renderedPreview = $derived(marked(formData.content));
-
-	function addTag() {
-		if (tagInput.trim() && !formData.labels.includes(tagInput.trim())) {
-			formData = {
-				...formData,
-				labels: [...formData.labels, tagInput.trim()]
-			};
-			tagInput = '';
+	function addLabel() {
+		if (labelInput.trim() && !labels.includes(labelInput.trim())) {
+			labels = [...labels, labelInput.trim()];
+			labelInput = '';
 		}
 	}
 
-	function removeTag(tagToRemove: string) {
-		formData = {
-			...formData,
-			labels: formData.labels.filter(t => t !== tagToRemove)
-		};
-	}
-
-	function addChecklistItem() {
-		const newItem: QuickNoteChecklistItem = {
-			id: `item-${Date.now()}`,
-			text: '',
-			isChecked: false,
-			sortOrder: formData.checklist.length
-		};
-		formData = {
-			...formData,
-			checklist: [...formData.checklist, newItem]
-		};
-	}
-
-	function updateChecklistItem(id: string, text: string) {
-		formData = {
-			...formData,
-			checklist: formData.checklist.map(item =>
-				item.id === id ? { ...item, text } : item
-			)
-		};
-	}
-
-	function toggleChecklistItem(id: string) {
-		formData = {
-			...formData,
-			checklist: formData.checklist.map(item =>
-				item.id === id ? { ...item, isChecked: !item.isChecked } : item
-			)
-		};
-	}
-
-	function removeChecklistItem(id: string) {
-		formData = {
-			...formData,
-			checklist: formData.checklist.filter(item => item.id !== id)
-		};
+	function removeLabel(label: string) {
+		labels = labels.filter(l => l !== label);
 	}
 
 	function handleCreate() {
-		if (!formData.content.trim()) return;
+		if (!content.trim()) return;
 
-		onCreate(formData);
-		onClose();
+		onCreate({
+			title,
+			content,
+			color,
+			labels,
+			checklist: []
+		});
 	}
 </script>
 
-<Dialog.Root open={true} onOpenChange={(o) => o && onClose()}>
-	<Dialog.Content class="max-w-[90vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+<Dialog.Root open={true} onOpenChange={() => onClose()}>
+	<Dialog.Content class="max-w-lg max-h-[90vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-3">
 				<div class="p-2 bg-emerald-500/10 rounded-lg">
@@ -115,135 +68,61 @@
 					{/if}
 				</div>
 				<div>
-					{isEditing ? 'Edit Note' : 'Create New Note'}
-					<p class="text-xs sm:text-sm font-normal text-muted-foreground mt-0.5">
-						{#if isEditing}
-							Update your note with markdown and checklist support
-						{:else}
-							Capture your thoughts quickly
-						{/if}
-					</p>
+					{isEditing ? 'Edit Note' : 'New Note'}
 				</div>
 			</Dialog.Title>
 		</Dialog.Header>
 
-		<Dialog.Body class="space-y-4">
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				<div class="space-y-3">
+		<div class="space-y-3">
+			<div class="flex items-end gap-3">
+				<div class="flex-1">
 					<Label for="title">Title</Label>
 					<Input
 						id="title"
-						bind:value={formData.title}
-						placeholder="Note title (optional)"
-						class="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+						bind:value={title}
+						placeholder="Optional"
 					/>
-
-					<Label>Color</Label>
-					<ColorPicker selectedColor={formData.color} onSelect={(c) => formData = { ...formData, color: c }} />
-
-					<Label>Labels</Label>
-					<div class="flex gap-2">
-						<Input
-							bind:value={tagInput}
-							onkeypress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-							placeholder="Add label..."
-							class="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-						/>
-						<Button size="sm" variant="outline" onclick={addTag}>
-							<Plus class="h-4 w-4" />
-						</Button>
-					</div>
-					{#if formData.labels.length > 0}
-						<div class="flex flex-wrap gap-1.5 mt-2">
-							{#each formData.labels as tag}
-								<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/5 border border-primary/10 text-xs font-medium">
-									{tag}
-									<button
-										class="hover:bg-destructive/20 rounded-full p-0.5 transition-colors ml-1"
-										onclick={() => removeTag(tag)}
-									>
-										<X class="h-3 w-3" />
-									</button>
-								</div>
-							{/each}
-						</div>
-					{/if}
 				</div>
-
-				<div class="space-y-3">
-					<Label for="content">Content <span class="text-muted-foreground font-normal">(Markdown supported)</span></Label>
-					<div class="relative">
-						<Textarea
-							id="content"
-							bind:value={formData.content}
-							placeholder="Write your note..."
-							class="font-mono text-xs sm:text-sm resize-none min-h-[200px]"
-						/>
-						<div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 text-xs text-muted-foreground">
-							{formData.content.split(/\s+/).filter(x => x).length} words
-						</div>
-					</div>
-
-					<Label>Checklist</Label>
-					<div class="space-y-2">
-						{#if formData.checklist.length > 0}
-							{#each formData.checklist as item, i}
-								<div class="flex items-center gap-2">
-									<button
-										class="flex-shrink-0 p-1 rounded hover:bg-black/5"
-										onclick={() => toggleChecklistItem(item.id)}
-										aria-label={item.isChecked ? 'Mark as unchecked' : 'Mark as checked'}
-									>
-										{#if item.isChecked}
-											<Check class="h-4 w-4 text-green-600" />
-										{:else}
-											<div class="h-4 w-4 border-2 border-gray-300 rounded" />
-										{/if}
-									</button>
-									<Input
-										class="flex-1 h-8 text-sm"
-										value={item.text}
-										oninput={(e) => updateChecklistItem(item.id, e.target.value)}
-										placeholder="Checklist item..."
-									/>
-									<Button
-										size="icon"
-										variant="ghost"
-										class="flex-shrink-0 text-red-500 hover:text-red-700"
-										onclick={() => removeChecklistItem(item.id)}
-									>
-										<Trash2 class="h-4 w-4" />
-									</Button>
-								</div>
-							{/each}
-						{:else}
-							<Button
-								variant="outline"
-								class="w-full py-6 text-muted-foreground hover:text-foreground"
-								onclick={addChecklistItem}
-							>
-								<Plus class="h-4 w-4 mr-2" />
-								Add checklist item
-							</Button>
-						{/if}
-					</div>
+				<div>
+					<Label>Color</Label>
+					<ColorPicker selected={color} onSelect={(c) => color = c} size="sm" />
 				</div>
 			</div>
 
-			{#if formData.content.length > 0}
-				<div class="pt-4 border-t border-gray-200">
-					<Label class="mb-2 block">Preview</Label>
-					<div class="p-4 bg-gray-50 rounded-lg border border-gray-200 prose prose-sm max-w-none">
-						{@html renderedPreview}
-					</div>
+			<div>
+				<Label>Labels</Label>
+				<div class="flex flex-wrap gap-1 mb-2">
+					{#each labels as label}
+						<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-xs">
+							{label}
+							<button onclick={() => removeLabel(label)} class="hover:text-destructive">
+								<X class="h-3 w-3" />
+							</button>
+						</span>
+					{/each}
 				</div>
-			{/if}
-		</Dialog.Body>
+				<Input
+					bind:value={labelInput}
+					onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addLabel())}
+					placeholder="Add label..."
+				/>
+			</div>
 
-		<Dialog.Footer class="flex-col sm:flex-row gap-2">
-			<Button variant="outline" onclick={onClose} class="w-full sm:w-auto">Cancel</Button>
-			<Button onclick={handleCreate} disabled={!formData.content.trim()} class="w-full sm:w-auto">
-				{isEditing ? 'Save Changes' : 'Create Note'}
+			<div>
+				<Label for="content">Content</Label>
+				<Textarea
+					id="content"
+					bind:value={content}
+					placeholder="Write your note..."
+					class="min-h-[250px] resize-none"
+				/>
+			</div>
+		</div>
+
+		<Dialog.Footer>
+			<Button variant="outline" onclick={onClose}>Cancel</Button>
+			<Button onclick={handleCreate} disabled={!content.trim()}>
+				{isEditing ? 'Save' : 'Create'}
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

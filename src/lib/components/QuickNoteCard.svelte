@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { QuickNote } from '../../models/index.js';
 	import { marked } from 'marked';
-	import { Button } from '$lib/components/ui/button';
-	import { StickyNote, Archive, Trash2, Check, X, MoreVertical } from 'lucide-svelte';
+	import { StickyNote, Archive, Trash2, Check, MoreVertical } from 'lucide-svelte';
 
 	interface Props {
 		note: QuickNote;
@@ -32,50 +31,68 @@
 	);
 	const totalChecklistItems = $derived(note.checklist.length);
 
-	const colorClasses = $derived(() => {
-		const colorMap: Record<string, string> = {
-			default: 'bg-white border-gray-200',
-			red: 'bg-red-50 border-red-200',
-			orange: 'bg-orange-50 border-orange-200',
-			yellow: 'bg-yellow-50 border-yellow-200',
-			green: 'bg-green-50 border-green-200',
-			teal: 'bg-teal-50 border-teal-200',
-			blue: 'bg-blue-50 border-blue-200',
-			'dark-blue': 'bg-blue-900/10 border-blue-900/20',
-			purple: 'bg-purple-50 border-purple-200',
-			pink: 'bg-pink-50 border-pink-200',
-			brown: 'bg-amber-100 border-amber-200',
-			gray: 'bg-gray-50 border-gray-200'
-		};
-		return colorMap[note.color || 'default'];
-	});
+	// Determine text color based on background luminance
+	function getContrastColor(hexColor: string): 'dark' | 'light' {
+		const hex = hexColor.replace('#', '');
+		const r = parseInt(hex.substring(0, 2), 16);
+		const g = parseInt(hex.substring(2, 4), 16);
+		const b = parseInt(hex.substring(4, 6), 16);
+		const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+		return luminance > 0.5 ? 'dark' : 'light';
+	}
+
+	const textColor = $derived(getContrastColor(note.color || '#fef3c7'));
+	const textColorClass = $derived(textColor === 'dark' ? 'text-gray-900' : 'text-gray-100');
+	const textColorMutedClass = $derived(textColor === 'dark' ? 'text-gray-700' : 'text-gray-300');
+	const textColorStrongClass = $derived(textColor === 'dark' ? 'text-gray-800' : 'text-gray-200');
 </script>
 
 <div
-	class="relative p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer {colorClasses}"
+	class="sticky-note group relative p-4 rounded-sm shadow-md cursor-pointer transition-all duration-300 ease-out"
+	style="background-color: {note.color || '#fef3c7'};"
 	onclick={() => onClick?.(note)}
 >
+	<!-- Tape effect at the top -->
+	<div class="tape-effect absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-white/40 backdrop-blur-sm shadow-sm transform -rotate-1 z-10"></div>
+
+	<!-- Folded corner effect -->
+	<div class="folded-corner absolute top-0 right-0 w-0 h-0 border-t-[32px] border-r-[32px] border-t-black/5 border-r-transparent z-0"></div>
+
 	{#if note.isPinned}
-		<div class="absolute top-2 right-2">
-			<StickyNote class="h-4 w-4 text-amber-500 fill-amber-500" />
+		<div class="absolute -top-1 right-6 z-20">
+			<div class="bg-amber-400 rounded-full p-1 shadow-sm">
+				<StickyNote class="h-3 w-3 text-white" />
+			</div>
 		</div>
 	{/if}
 
+	<!-- Delete icon on hover -->
+	<button
+		class="absolute -top-2 -right-2 z-20 p-1.5 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:scale-110"
+		onclick={(e) => {
+			e.stopPropagation();
+			onDelete?.(note);
+		}}
+		aria-label="Delete note"
+	>
+		<Trash2 class="h-3.5 w-3.5 text-gray-600 hover:text-red-600 transition-colors" />
+	</button>
+
 	<div class="flex items-start justify-between mb-2">
 		{#if note.title}
-			<h3 class="font-semibold text-gray-900 line-clamp-2 text-sm">{note.title}</h3>
+			<h3 class="font-bold {textColorClass} line-clamp-2 text-sm drop-shadow-sm">{note.title}</h3>
 		{/if}
-		<div class="relative" onclick={(e) => { e.stopPropagation(); showMenu = !showMenu; }}>
+		<div class="relative flex-shrink-0 ml-2" onclick={(e) => { e.stopPropagation(); showMenu = !showMenu; }}>
 			<button
-				class="p-1.5 rounded-md hover:bg-black/5 transition-colors text-gray-500"
+				class="p-1 rounded hover:bg-black/10 transition-colors {textColorStrongClass}"
 				aria-label="More options"
 			>
 				<MoreVertical class="h-4 w-4" />
 			</button>
 			{#if showMenu}
-				<div class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[140px]">
+				<div class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[140px]">
 					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 text-left text-sm"
+						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 text-left text-sm text-gray-800"
 						onclick={(e) => {
 							e.stopPropagation();
 							onTogglePin?.(note);
@@ -86,7 +103,7 @@
 						<span>{note.isPinned ? 'Unpin' : 'Pin'}</span>
 					</button>
 					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 text-left text-sm"
+						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 text-left text-sm text-gray-800"
 						onclick={(e) => {
 							e.stopPropagation();
 							onArchive?.(note);
@@ -96,30 +113,19 @@
 						<Archive class="h-4 w-4" />
 						<span>{note.isArchived ? 'Unarchive' : 'Archive'}</span>
 					</button>
-					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-red-50 text-left text-sm text-red-600"
-						onclick={(e) => {
-							e.stopPropagation();
-							onDelete?.(note);
-							showMenu = false;
-						}}
-					>
-						<Trash2 class="h-4 w-4" />
-						<span>Delete</span>
-					</button>
 				</div>
 			{/if}
 		</div>
 	</div>
 
-	<div class="markdown-content prose prose-sm max-w-none">
+	<div class="markdown-content prose prose-sm max-w-none {textColorStrongClass}">
 		{#if !isExpanded}
 			<div class="line-clamp-3">
 				{@html renderedContent}
 			</div>
 			{#if note.content.length > 200}
 				<button
-					class="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+					class="mt-2 text-xs {textColorMutedClass} hover:underline"
 					onclick={(e) => {
 						e.stopPropagation();
 						isExpanded = true;
@@ -134,15 +140,15 @@
 	</div>
 
 	{#if note.checklist.length > 0}
-		<div class="mt-3 pt-3 border-t border-gray-200">
-			<div class="flex items-center gap-2 text-xs text-gray-500 mb-2">
+		<div class="mt-3 pt-3 border-t border-black/20">
+			<div class="flex items-center gap-2 text-xs {textColorMutedClass} mb-2">
 				<span>{completedChecklistItems}/{totalChecklistItems} completed</span>
 			</div>
 			<div class="space-y-1">
-				{#each note.checklist as item, index (i)}
+				{#each note.checklist as item}
 					<div class="flex items-center gap-2">
 						<button
-							class="flex-shrink-0 p-1 rounded hover:bg-black/5"
+							class="flex-shrink-0 p-1 rounded hover:bg-black/10"
 							onclick={(e) => {
 								e.stopPropagation();
 								onToggleChecklist?.(note.id, item.id);
@@ -150,14 +156,14 @@
 							aria-label={item.isChecked ? 'Mark as unchecked' : 'Mark as checked'}
 						>
 							{#if item.isChecked}
-								<Check class="h-4 w-4 text-green-600" />
+								<Check class="h-4 w-4 {textColorStrongClass}" />
 							{:else}
-								<div class="h-4 w-4 border-2 border-gray-300 rounded" />
+								<div class="h-4 w-4 border-2 {textColorStrongClass} rounded"></div>
 							{/if}
 						</button>
-						<span class="text-sm text-gray-700 flex-1">
+						<span class="text-sm {textColorStrongClass} flex-1">
 							{#if item.isChecked}
-								<span class="line-through text-gray-400">{item.text}</span>
+								<span class="line-through {textColorMutedClass}">{item.text}</span>
 							{:else}
 								{item.text}
 							{/if}
@@ -170,6 +176,29 @@
 </div>
 
 <style>
+	.sticky-note {
+		transform: rotate(-0.5deg);
+		transform-origin: top left;
+	}
+
+	.sticky-note:hover {
+		transform: rotate(0deg) scale(1.02);
+		box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 5px 10px -5px rgba(0, 0, 0, 0.1);
+		z-index: 10;
+	}
+
+	.sticky-note:nth-child(even) {
+		transform: rotate(0.5deg);
+	}
+
+	.sticky-note:nth-child(even):hover {
+		transform: rotate(0deg) scale(1.02);
+	}
+
+	.sticky-note:nth-child(3n) {
+		transform: rotate(-0.3deg);
+	}
+
 	.line-clamp-3 {
 		display: -webkit-box;
 		-webkit-line-clamp: 3;
