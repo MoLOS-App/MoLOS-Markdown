@@ -1,0 +1,15 @@
+id: MoLOS-Markdown
+name: Markdown
+version: 1.0.0
+description: Hierarchical markdown document management with tree navigation, versioning, and search
+author: MoLOS
+license: MIT
+category: documentation
+dependencies:
+  - "@molos/database"
+  - "@molos/core"
+  - "@molos/module-types"
+peerDependencies:
+  - drizzle-orm
+  - svelte
+  - "@sveltejs/kit"

@@ -38,12 +38,15 @@ export class MarkdownRepository extends BaseRepository {
 		};
 	}
 
-	async getByUserId(userId: string): Promise<MarkdownPage[]> {
-		const result = await this.db
+	async getByUserId(userId: string, limit?: number): Promise<MarkdownPage[]> {
+		const query = this.db
 			.select()
 			.from(markdownPages)
 			.where(eq(markdownPages.userId, userId))
-			.orderBy(desc(markdownPages.updatedAt));
+			.orderBy(desc(markdownPages.updatedAt))
+			.limit(limit || 1000);
+
+		const result = await query;
 		return result.map(this.mapToPage);
 	}
 
@@ -273,7 +276,7 @@ export class MarkdownRepository extends BaseRepository {
 			.where(
 				and(
 					eq(markdownPages.userId, userId),
-					eq(markdownPages.isTemplate, 1)
+					eq(markdownPages.isTemplate, true)
 				)
 			);
 		return result.map(this.mapToPage);
@@ -286,6 +289,48 @@ export class MarkdownRepository extends BaseRepository {
 			.where(eq(markdownVersions.pageId, pageId))
 			.orderBy(desc(markdownVersions.version));
 		return result.map(this.mapToVersion);
+	}
+
+	async restoreVersion(pageId: string, versionNumber: number, userId: string): Promise<MarkdownPage | null> {
+		const page = await this.getById(pageId, userId);
+		if (!page) {
+			return null;
+		}
+
+		const version = await this.db
+			.select()
+			.from(markdownVersions)
+			.where(
+				and(eq(markdownVersions.pageId, pageId), eq(markdownVersions.version, versionNumber))
+			)
+			.limit(1);
+
+		if (version.length === 0) {
+			return null;
+		}
+
+		const now = Math.floor(Date.now() / 1000);
+
+		await this.db
+			.update(markdownPages)
+			.set({
+				content: version[0].content,
+				version: page.version + 1,
+				updatedAt: now
+			})
+			.where(and(eq(markdownPages.id, pageId), eq(markdownPages.userId, userId)));
+
+		await this.db.insert(markdownVersions).values({
+			id: `MDVER-${Date.now()}`,
+			userId,
+			pageId,
+			version: page.version + 1,
+			content: version[0].content,
+			changeDescription: `Restored from version ${versionNumber}`,
+			createdAt: now
+		});
+
+		return this.getById(pageId, userId);
 	}
 
 	private async generatePath(data: CreateMarkdownPageInput, userId: string): Promise<string> {
@@ -426,6 +471,6 @@ export class MarkdownRepository extends BaseRepository {
 			.delete(markdownPages)
 			.where(and(eq(markdownPages.id, id), eq(markdownPages.userId, userId)));
 
-		return result.rowsAffected > 0;
+		return result.changes > 0;
 	}
 }

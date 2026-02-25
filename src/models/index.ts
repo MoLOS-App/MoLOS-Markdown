@@ -1,3 +1,12 @@
+// ============== ENUMS ==============
+
+export const NodeType = {
+	FOLDER: 'folder',
+	PAGE: 'page'
+} as const;
+
+export type NodeType = (typeof NodeType)[keyof typeof NodeType];
+
 // ============== INTERFACE DEFINITIONS ==============
 
 export interface MarkdownPage {
@@ -40,7 +49,7 @@ export interface TreeNode {
 	id: string;
 	title: string;
 	path: string;
-	type: "folder" | "page";
+	type: NodeType;
 	slug: string;
 	children?: TreeNode[];
 	expanded?: boolean;
