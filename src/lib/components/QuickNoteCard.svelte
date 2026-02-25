@@ -179,12 +179,38 @@
 	.sticky-note {
 		transform: rotate(-0.5deg);
 		transform-origin: top left;
+		position: relative;
+		overflow: visible;
+	}
+
+	.sticky-note::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 4px;
+		background: linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0.1) 0%,
+			rgba(0, 0, 0, 0.02) 50%,
+			rgba(0, 0, 0, 0.05) 100%
+		);
+		pointer-events: none;
+		z-index: 0;
 	}
 
 	.sticky-note:hover {
-		transform: rotate(0deg) scale(1.02);
-		box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 5px 10px -5px rgba(0, 0, 0, 0.1);
+		transform: rotate(0deg) scale(1.03) translateY(-4px);
+		box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 8px 15px -5px rgba(0, 0, 0, 0.15);
 		z-index: 10;
+	}
+
+	.sticky-note:hover::before {
+		background: linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0.15) 0%,
+			rgba(0, 0, 0, 0.03) 50%,
+			rgba(0, 0, 0, 0.02) 100%
+		);
 	}
 
 	.sticky-note:nth-child(even) {
@@ -192,11 +218,43 @@
 	}
 
 	.sticky-note:nth-child(even):hover {
-		transform: rotate(0deg) scale(1.02);
+		transform: rotate(0deg) scale(1.03) translateY(-4px);
 	}
 
 	.sticky-note:nth-child(3n) {
 		transform: rotate(-0.3deg);
+	}
+
+	.sticky-note:nth-child(3n):hover {
+		transform: rotate(0deg) scale(1.03) translateY(-4px);
+	}
+
+	/* Tape effect */
+	.tape-effect {
+		border-radius: 2px;
+	}
+
+	.tape-effect::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 2px,
+			rgba(0, 0, 0, 0.02) 2px,
+			rgba(0, 0, 0, 0.02) 4px
+		);
+		border-radius: 2px;
+	}
+
+	/* Folded corner */
+	.folded-corner {
+		box-shadow: -3px 3px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.sticky-note:hover .folded-corner {
+		box-shadow: -4px 4px 6px rgba(0, 0, 0, 0.15);
 	}
 
 	.line-clamp-3 {
@@ -204,5 +262,64 @@
 		-webkit-line-clamp: 3;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
+	}
+
+	/* Reset markdown content colors for dark text on light backgrounds */
+	.markdown-content a {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 2px;
+		transition: opacity 0.2s;
+	}
+
+	.markdown-content a:hover {
+		opacity: 0.8;
+	}
+
+	.markdown-content code {
+		background-color: rgba(0, 0, 0, 0.08);
+		color: inherit;
+	}
+
+	.markdown-content pre {
+		background-color: rgba(0, 0, 0, 0.08);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		color: inherit;
+	}
+
+	.markdown-content pre code {
+		background-color: transparent;
+	}
+
+	.markdown-content blockquote {
+		border-left-color: rgba(0, 0, 0, 0.2);
+		color: inherit;
+		opacity: 0.8;
+	}
+
+	.markdown-content hr {
+		border-top-color: rgba(0, 0, 0, 0.2);
+	}
+
+	.markdown-content table th,
+	.markdown-content table td {
+		border-color: rgba(0, 0, 0, 0.15);
+	}
+
+	.markdown-content table th {
+		background-color: rgba(0, 0, 0, 0.08);
+	}
+
+	.markdown-content table tr:nth-child(even) {
+		background-color: rgba(0, 0, 0, 0.05);
+	}
+
+	.markdown-content details {
+		border-color: rgba(0, 0, 0, 0.15);
+	}
+
+	.markdown-content strong {
+		color: inherit;
 	}
 </style>
