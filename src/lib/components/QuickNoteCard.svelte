@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { QuickNote } from '../../models/index.js';
-	import { marked } from 'marked';
-	import { StickyNote, Archive, Trash2, Check, MoreVertical } from 'lucide-svelte';
+	import { StickyNote, Archive, Trash2, Check, EllipsisVertical } from 'lucide-svelte';
 
 	interface Props {
 		note: QuickNote;
@@ -23,32 +22,77 @@
 
 	let showMenu = $state(false);
 	let isExpanded = $state(false);
-
-	const renderedContent = $derived(marked(note.content));
+	let menuContainer = $state<HTMLElement | null>(null);
+	let contentContainer = $state<HTMLElement | null>(null);
+	const MAX_EXPANDED_HEIGHT = 400; // Maximum height in pixels for expanded content
 
 	const completedChecklistItems = $derived(
 		note.checklist.filter((item) => item.isChecked).length
 	);
 	const totalChecklistItems = $derived(note.checklist.length);
 
-	// Text colors - always dark for better readability on light sticky notes
-	const textColorClass = 'text-gray-900';
-	const textColorMutedClass = 'text-gray-700';
-	const textColorStrongClass = 'text-gray-800';
+	// Calculate optimal text color based on background luminance
+	const getContrastColor = (hexColor: string): string => {
+		// Remove hash if present
+		const hex = hexColor.replace('#', '');
+
+		// Parse RGB values
+		const r = parseInt(hex.substring(0, 2), 16);
+		const g = parseInt(hex.substring(2, 4), 16);
+		const b = parseInt(hex.substring(4, 6), 16);
+
+		// Calculate luminance using the relative luminance formula
+		// https://www.w3.org/WAI/GL/wiki/Relative_luminance
+		const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+		// Return black for light backgrounds, white for dark backgrounds
+		// Using a threshold of 0.5 for good contrast
+		return luminance > 0.5 ? '#1a1a1a' : '#ffffff';
+	};
+
+	const noteBackgroundColor = $derived(note.color || '#fef3c7');
+	const noteTextColor = $derived(getContrastColor(noteBackgroundColor));
+
+	// Close menu when clicking outside
+	$effect(() => {
+		if (showMenu) {
+			const handleClickOutside = (e: MouseEvent) => {
+				if (menuContainer && !menuContainer.contains(e.target as Node)) {
+					showMenu = false;
+				}
+			};
+			document.addEventListener('click', handleClickOutside);
+			return () => document.removeEventListener('click', handleClickOutside);
+		}
+	});
+
+
 </script>
 
 <div
-	class="sticky-note group relative p-4 rounded-sm shadow-md cursor-pointer transition-all duration-300 ease-out"
-	style="background-color: {note.color || '#fef3c7'};"
-	onclick={() => onClick?.(note)}
+	class="relative p-4 transition-all duration-300 ease-out rounded-sm shadow-md cursor-pointer sticky-note group"
+	style="background-color: {noteBackgroundColor}; color: {noteTextColor}; max-height: {isExpanded ? '600px' : 'auto'}; overflow: hidden;"
+	onclick={() => {
+		onClick?.(note);
+		showMenu = false;
+	}}
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onClick?.(note);
+			showMenu = false;
+		}
+	}}
+	role="button"
+	tabindex="0"
 >
 	<!-- Folded corner effect -->
-	<div class="folded-corner absolute top-0 right-0 w-0 h-0 border-t-[32px] border-r-[32px] border-t-black/5 border-r-transparent z-0"></div>
+	<div class="absolute top-0 right-0 z-0 w-0 h-0 folded-corner border-t-32 border-r-32 border-r-transparent" style="border-top-color: {noteTextColor}; opacity: 0.05;"></div>
 
 	{#if note.isPinned}
-		<div class="absolute -top-1 right-6 z-20">
-			<div class="bg-amber-400 rounded-full p-1 shadow-sm">
-				<StickyNote class="h-3 w-3 text-white" />
+		<div class="absolute z-20 -top-1 right-6">
+			<div class="p-1 rounded-full shadow-sm bg-amber-400">
+				<StickyNote class="w-3 h-3" />
 			</div>
 		</div>
 	{/if}
@@ -68,22 +112,28 @@
 
 	<div class="flex items-start justify-between mb-2">
 		{#if note.title}
-			<h3 class="font-bold {textColorClass} line-clamp-2 text-sm drop-shadow-sm">{note.title}</h3>
+			<h3 class="text-sm font-bold line-clamp-2 drop-shadow-sm">{note.title}</h3>
 		{/if}
-		<div class="relative flex-shrink-0 ml-2" onclick={(e) => { e.stopPropagation(); showMenu = !showMenu; }}>
+		<div class="relative ml-2 shrink-0" bind:this={menuContainer} onclick={(e) => { e.stopPropagation(); showMenu = !showMenu; }} role="button" tabindex="0" onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				showMenu = !showMenu;
+			}
+		}}>
 			<button
-				class="p-1 rounded hover:bg-black/10 transition-colors {textColorStrongClass}"
+				class="p-1 transition-colors rounded"
+				style="hover: background-color: {noteTextColor}; opacity: 0.1;"
 				aria-label="More options"
 			>
-				<MoreVertical class="h-4 w-4" />
+				<EllipsisVertical class="w-4 h-4" />
 			</button>
 			{#if showMenu}
 				<div
-					class="absolute right-0 top-full mt-1 rounded-lg shadow-lg py-1 z-20 min-w-[140px]"
+					class="absolute right-0 z-20 py-1 mt-1 rounded-lg shadow-lg top-full min-w-35"
 					style="background-color: var(--popover); border-color: var(--border);"
 				>
 					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 text-left text-sm transition-colors"
+						class="flex items-center w-full gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-muted/50"
 						style="color: var(--popover-foreground);"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -91,11 +141,11 @@
 							showMenu = false;
 						}}
 					>
-						<Check class="h-4 w-4" />
+						<Check class="w-4 h-4" />
 						<span>{note.isPinned ? 'Unpin' : 'Pin'}</span>
 					</button>
 					<button
-						class="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 text-left text-sm transition-colors"
+						class="flex items-center w-full gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-muted/50"
 						style="color: var(--popover-foreground);"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -103,7 +153,7 @@
 							showMenu = false;
 						}}
 					>
-						<Archive class="h-4 w-4" />
+						<Archive class="w-4 h-4" />
 						<span>{note.isArchived ? 'Unarchive' : 'Archive'}</span>
 					</button>
 				</div>
@@ -111,14 +161,15 @@
 		</div>
 	</div>
 
-	<div class="markdown-content prose prose-sm max-w-none {textColorStrongClass}">
+	<div class="prose-sm prose whitespace-pre-wrap max-w-none" bind:this={contentContainer}>
 		{#if !isExpanded}
 			<div class="line-clamp-3">
-				{@html renderedContent}
+				{note.content}
 			</div>
 			{#if note.content.length > 200}
 				<button
-					class="mt-2 text-xs {textColorMutedClass} hover:underline"
+					class="mt-2 text-xs hover:underline"
+					style="color: {noteTextColor};"
 					onclick={(e) => {
 						e.stopPropagation();
 						isExpanded = true;
@@ -128,20 +179,33 @@
 				</button>
 			{/if}
 		{:else}
-			{@html renderedContent}
+			<div class="overflow-y-auto" style="max-height: {MAX_EXPANDED_HEIGHT}px;">
+				{note.content}
+			</div>
+			<button
+				class="mt-2 text-xs hover:underline"
+				style="color: {noteTextColor};"
+				onclick={(e) => {
+					e.stopPropagation();
+					isExpanded = false;
+				}}
+			>
+				Show less
+			</button>
 		{/if}
 	</div>
 
 	{#if note.checklist.length > 0}
-		<div class="mt-3 pt-3 border-t border-black/20">
-			<div class="flex items-center gap-2 text-xs {textColorMutedClass} mb-2">
+		<div class="pt-3 mt-3 border-t" style="border-color: {noteTextColor}; opacity: 0.2;">
+			<div class="flex items-center gap-2 mb-2 text-xs" style="color: {noteTextColor};">
 				<span>{completedChecklistItems}/{totalChecklistItems} completed</span>
 			</div>
 			<div class="space-y-1">
 				{#each note.checklist as item}
 					<div class="flex items-center gap-2">
 						<button
-							class="flex-shrink-0 p-1 rounded hover:bg-black/10"
+							class="p-1 rounded shrink-0"
+							style="hover: background-color: {noteTextColor}; opacity: 0.1;"
 							onclick={(e) => {
 								e.stopPropagation();
 								onToggleChecklist?.(note.id, item.id);
@@ -149,14 +213,14 @@
 							aria-label={item.isChecked ? 'Mark as unchecked' : 'Mark as checked'}
 						>
 							{#if item.isChecked}
-								<Check class="h-4 w-4 {textColorStrongClass}" />
+								<Check class="w-4 h-4" />
 							{:else}
-								<div class="h-4 w-4 border-2 {textColorStrongClass} rounded"></div>
+								<div class="w-4 h-4 border-2 rounded" style="border-color: {noteTextColor};"></div>
 							{/if}
 						</button>
-						<span class="text-sm {textColorStrongClass} flex-1">
+						<span class="flex-1 text-sm">
 							{#if item.isChecked}
-								<span class="line-through {textColorMutedClass}">{item.text}</span>
+								<span class="line-through" style="color: {noteTextColor}; opacity: 0.6;">{item.text}</span>
 							{:else}
 								{item.text}
 							{/if}
@@ -222,25 +286,6 @@
 		transform: rotate(0deg) scale(1.03) translateY(-4px);
 	}
 
-	/* Tape effect */
-	.tape-effect {
-		border-radius: 2px;
-	}
-
-	.tape-effect::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: repeating-linear-gradient(
-			90deg,
-			transparent,
-			transparent 2px,
-			rgba(0, 0, 0, 0.02) 2px,
-			rgba(0, 0, 0, 0.02) 4px
-		);
-		border-radius: 2px;
-	}
-
 	/* Folded corner */
 	.folded-corner {
 		box-shadow: -3px 3px 4px rgba(0, 0, 0, 0.1);
@@ -257,67 +302,26 @@
 		overflow: hidden;
 	}
 
-	/* Reset markdown content colors for dark text on light backgrounds */
-	.markdown-content a {
-		color: inherit;
-		text-decoration: underline;
-		text-decoration-thickness: 1px;
-		text-underline-offset: 2px;
-		transition: opacity 0.2s;
+	/* Custom scrollbar for expanded content */
+	:global(.sticky-note .overflow-y-auto) {
+		scrollbar-width: thin;
+		scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 	}
 
-	.markdown-content a:hover {
-		opacity: 0.8;
+	:global(.sticky-note .overflow-y-auto::-webkit-scrollbar) {
+		width: 6px;
 	}
 
-	.markdown-content code {
-		background-color: rgba(0, 0, 0, 0.08);
-		color: inherit;
+	:global(.sticky-note .overflow-y-auto::-webkit-scrollbar-track) {
+		background: transparent;
 	}
 
-	.markdown-content pre {
-		background-color: rgba(0, 0, 0, 0.08);
-		border: 1px solid rgba(0, 0, 0, 0.1);
-		color: inherit;
+	:global(.sticky-note .overflow-y-auto::-webkit-scrollbar-thumb) {
+		background-color: rgba(0, 0, 0, 0.2);
+		border-radius: 3px;
 	}
 
-	.markdown-content pre code {
-		background-color: transparent;
-	}
-
-	.markdown-content blockquote {
-		border-left: 4px solid rgba(0, 0, 0, 0.15);
-		padding-left: 1em;
-		margin: 0 0 1em 0;
-		color: inherit;
-		opacity: 0.85;
-		font-style: italic;
-	}
-
-	.markdown-content hr {
-		border: none;
-		border-top: 1px solid rgba(0, 0, 0, 0.15);
-		margin: 2em 0;
-	}
-
-	.markdown-content table th,
-	.markdown-content table td {
-		border: 1px solid rgba(0, 0, 0, 0.15);
-	}
-
-	.markdown-content table th {
-		background-color: rgba(0, 0, 0, 0.08);
-	}
-
-	.markdown-content table tr:nth-child(even) {
-		background-color: rgba(0, 0, 0, 0.05);
-	}
-
-	.markdown-content details {
-		border: 1px solid rgba(0, 0, 0, 0.15);
-	}
-
-	.markdown-content strong {
-		color: inherit;
+	:global(.sticky-note .overflow-y-auto::-webkit-scrollbar-thumb:hover) {
+		background-color: rgba(0, 0, 0, 0.3);
 	}
 </style>
