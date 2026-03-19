@@ -6,7 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { StickyNote, Plus, Search, Archive, Pin, Grid, List, X as CloseIcon } from 'lucide-svelte';
 	import { QuickNoteCard, QuickNoteCreateDialog } from '../../../lib/components';
-	import { quickNotes, selectNote } from '../../../stores';
+	import { quickNotesState, setNotes } from '../../../stores/quick-notes.svelte';
 	import {
 		Select,
 		SelectContent,
@@ -34,12 +34,15 @@
 		const response = await fetch('/api/MoLOS-Markdown/quick-notes');
 		if (response.ok) {
 			const notes = await response.json();
-			quickNotes.set(notes);
+			setNotes(notes);
 		}
 	});
 
-	let filteredNotes = $derived(() => {
-		let result = [...$quickNotes];
+	// Use local derived state that references quickNotesState.notes
+	let notes = $derived(quickNotesState.notes);
+
+	let filteredNotes = $derived.by(() => {
+		let result = [...notes];
 
 		if (activeFilter === 'pinned') {
 			result = result.filter((note) => note.isPinned);
@@ -64,8 +67,12 @@
 		return result;
 	});
 
-	let pinnedCount = $derived($quickNotes.filter((n) => n.isPinned).length);
-	let archivedCount = $derived($quickNotes.filter((n) => n.isArchived).length);
+	let pinnedCount = $derived(notes.filter((n) => n.isPinned).length);
+	let archivedCount = $derived(notes.filter((n) => n.isArchived).length);
+
+	function updateNotes(updater: (notes: QuickNote[]) => QuickNote[]) {
+		setNotes(updater(notes));
+	}
 
 	async function handleCreate(noteData: any) {
 		const response = await fetch('/api/MoLOS-Markdown/quick-notes', {
@@ -76,7 +83,7 @@
 
 		if (response.ok) {
 			const newNote = await response.json();
-			quickNotes.update(notes => [newNote, ...notes]);
+			updateNotes(n => [newNote, ...n]);
 			showCreateDialog = false;
 		}
 	}
@@ -92,7 +99,7 @@
 
 		if (response.ok) {
 			const updated = await response.json();
-			quickNotes.update(notes => notes.map(n => n.id === noteToEdit.id ? updated : n));
+			updateNotes(n => n.map(note => note.id === noteToEdit.id ? updated : note));
 			showEditDialog = false;
 			noteToEdit = null;
 		}
@@ -105,7 +112,7 @@
 
 		if (response.ok) {
 			const updated = await response.json();
-			quickNotes.update(notes => notes.map(n => n.id === note.id ? updated : n));
+			updateNotes(n => n.map(note => note.id === note.id ? updated : note));
 		}
 	}
 
@@ -116,7 +123,7 @@
 
 		if (response.ok) {
 			const updated = await response.json();
-			quickNotes.update(notes => notes.map(n => n.id === note.id ? updated : n));
+			updateNotes(n => n.map(note => note.id === note.id ? updated : note));
 		}
 	}
 
@@ -135,7 +142,7 @@
 		});
 
 		if (response.ok) {
-			quickNotes.update(notes => notes.filter(n => n.id !== noteToDelete.id));
+			updateNotes(n => n.filter(note => note.id !== noteToDelete.id));
 			showDeleteDialog = false;
 			noteToDelete = null;
 		}
@@ -157,8 +164,8 @@
 			// Refresh notes to get updated positions
 			const notesResponse = await fetch('/api/MoLOS-Markdown/quick-notes');
 			if (notesResponse.ok) {
-				const notes = await notesResponse.json();
-				quickNotes.set(notes);
+				const fetchedNotes = await notesResponse.json();
+				setNotes(fetchedNotes);
 			}
 		}
 	}
@@ -246,7 +253,7 @@
 		</header>
 
 	<main class="flex-1 p-4 overflow-y-auto sm:p-6">
-		{#if $quickNotes.length === 0}
+		{#if notes.length === 0}
 			<div class="flex-1 flex items-center justify-center min-h-[400px]">
 				<div class="max-w-md text-center">
 					<div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 sm:w-20 sm:h-20 sm:mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
@@ -266,7 +273,7 @@
 			<div class="mx-auto max-w-7xl">
 				{#if viewMode === 'masonry'}
 					<div class="notes-grid">
-						{#each filteredNotes() as note}
+						{#each filteredNotes as note}
 							<QuickNoteCard
 								{note}
 								onClick={handleNoteClick}
@@ -279,7 +286,7 @@
 					</div>
 				{:else}
 					<div class="max-w-3xl mx-auto space-y-2">
-						{#each filteredNotes() as note}
+						{#each filteredNotes as note}
 							<QuickNoteCard
 								{note}
 								onClick={handleNoteClick}

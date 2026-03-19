@@ -258,7 +258,85 @@ await fetch(`/api/MoLOS-Markdown/quick-notes/${noteId}/archive`, {
 
 ## Stores
 
-### Documents Stores
+This module provides two store implementations:
+
+1. **Svelte 5 Runes Stores** (recommended for new code) - `.svelte.ts` files with `$state` and `$derived`
+2. **Legacy Svelte 4 Stores** - `.ts` files with `writable` and `derived` (kept for backward compatibility)
+
+### Svelte 5 Runes Stores (Recommended)
+
+#### Documents Store
+
+```typescript
+import {
+	pagesState,
+	toggleExpanded,
+	expandAll,
+	collapseAll,
+	selectPage,
+	clearSelectedPage
+} from '$lib/stores/MoLOS-Markdown/index.svelte';
+
+// Access reactive state (no $ prefix needed)
+pagesState.selectedPageId      // string | null
+pagesState.selectedPage         // MarkdownPage | null
+pagesState.expandedNodes        // Set<string>
+pagesState.searchQuery          // string
+pagesState.tagFilter            // string
+pagesState.pages                // Map<string, MarkdownPage>
+pagesState.tree                 // TreeNode[]
+pagesState.templates            // MarkdownPage[]
+pagesState.showCreateDialog     // boolean
+pagesState.showEditDialog       // boolean
+pagesState.isEditing            // boolean
+pagesState.editContent          // string
+pagesState.showDeleteDialog     // boolean
+pagesState.pageToDelete         // MarkdownPage | null
+pagesState.filteredPages        // MarkdownPage[] (derived)
+pagesState.allTags              // string[] (derived)
+pagesState.pagesArray           // MarkdownPage[] (derived)
+
+// Actions
+selectPage(page);               // Select a page
+clearSelectedPage();            // Clear selection
+toggleExpanded(path);           // Toggle tree node
+expandAll(paths);               // Expand all nodes
+collapseAll();                  // Collapse all nodes
+```
+
+#### Quick Notes Store
+
+```typescript
+import {
+	quickNotesState,
+	selectNote,
+	clearSelectedNote,
+	setNotes
+} from '$lib/stores/MoLOS-Markdown/quick-notes.svelte';
+
+// Access reactive state (no $ prefix needed)
+quickNotesState.notes           // QuickNote[]
+quickNotesState.selectedId      // string | null
+quickNotesState.selected        // QuickNote | null
+quickNotesState.createDialogOpen // boolean
+quickNotesState.editDialogOpen  // boolean
+quickNotesState.filter          // 'all' | 'pinned' | 'archived'
+quickNotesState.search          // string
+quickNotesState.filtered        // QuickNote[] (derived)
+quickNotesState.pinnedCount     // number (derived)
+quickNotesState.archivedCount   // number (derived)
+
+// Actions
+selectNote(note);               // Select a note
+clearSelectedNote();            // Clear selection
+setNotes(notes);                // Replace all notes
+```
+
+### Legacy Stores (Backward Compatibility)
+
+For components still using Svelte 4 store patterns:
+
+#### Documents Stores
 
 ```typescript
 import {
@@ -269,28 +347,66 @@ import {
 	tagFilter,
 	pages,
 	tree,
-	templates
+	templates,
+	filteredPages,
+	allTags,
+	showCreateDialog,
+	showEditDialog,
+	isEditing,
+	editContent,
+	showDeleteDialog,
+	pageToDelete
 } from '$lib/stores/MoLOS-Markdown';
+
+// Use with $ prefix for reactivity
+$selectedPageId
+$pages
+$filteredPages
 ```
 
-### Quick Notes Stores
+#### Quick Notes Stores
 
 ```typescript
 import {
 	quickNotes,
 	filteredNotes,
 	selectedNoteId,
+	selectedNote,
 	showCreateDialog,
+	showEditDialog,
 	activeFilter,
-	searchQuery
+	searchQuery,
+	pinnedCount,
+	archivedCount,
+	selectNote,
+	clearSelectedNote
 } from '$lib/stores/MoLOS-Markdown/quick-notes';
+
+// Use with $ prefix for reactivity
+$quickNotes
+$filteredNotes
 ```
 
 ## AI Tools
 
-The module exposes AI tools for use with MoLOS AI system:
+The module exposes AI tools for use with MoLOS AI system. All tools include submodule metadata for the 3-level hierarchical permission system.
 
-### Documents AI Tools
+### Submodules
+
+| Submodule | Description | Tools |
+|-----------|-------------|-------|
+| `pages` | Markdown page/document management | `get_markdown_pages`, `get_markdown_page`, `search_markdown_pages`, `create_markdown_page`, `update_markdown_page`, `delete_markdown_page`, `get_markdown_tree`, `get_markdown_versions`, `restore_markdown_version` |
+| `quick-notes` | Quick notes management | `get_quick_notes`, `get_quick_note`, `search_quick_notes`, `create_quick_note`, `update_quick_note`, `delete_quick_note`, `pin_quick_note`, `archive_quick_note`, `toggle_quick_note_checklist_item`, `update_quick_note_checklist` |
+
+### Permission Scopes
+
+API keys can be configured with hierarchical permissions:
+
+- **Module level**: `MoLOS-Markdown` - Access to all tools in the module
+- **Submodule level**: `MoLOS-Markdown:pages` or `MoLOS-Markdown:quick-notes` - Access to all tools in a submodule
+- **Tool level**: `MoLOS-Markdown:pages:get_markdown_pages` - Access to a specific tool
+
+### Documents AI Tools (submodule: `pages`)
 
 - `get_markdown_pages` - Retrieve all pages
 - `get_markdown_page` - Get a specific page
@@ -300,6 +416,20 @@ The module exposes AI tools for use with MoLOS AI system:
 - `delete_markdown_page` - Delete a page
 - `get_markdown_tree` - Get hierarchical tree
 - `get_markdown_versions` - Get version history
+- `restore_markdown_version` - Restore a previous version
+
+### Quick Notes AI Tools (submodule: `quick-notes`)
+
+- `get_quick_notes` - Retrieve all quick notes
+- `get_quick_note` - Get a specific quick note
+- `search_quick_notes` - Search quick notes
+- `create_quick_note` - Create a new quick note
+- `update_quick_note` - Update a quick note
+- `delete_quick_note` - Archive a quick note
+- `pin_quick_note` - Toggle pinned state
+- `archive_quick_note` - Toggle archive state
+- `toggle_quick_note_checklist_item` - Toggle a checklist item
+- `update_quick_note_checklist` - Update the entire checklist
 
 ## Development
 
