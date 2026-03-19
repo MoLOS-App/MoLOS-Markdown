@@ -102,12 +102,14 @@ export interface CreateQuickNoteInput {
 	content: string;
 	color?: string;
 	labels?: string[];
+	checklist?: QuickNoteChecklistItem[];
 }
 
- export interface UpdateQuickNoteInput extends Partial<CreateQuickNoteInput> {
+export interface UpdateQuickNoteInput extends Partial<CreateQuickNoteInput> {
 	id?: string;
 	isPinned?: boolean;
 	isArchived?: boolean;
+	checklist?: QuickNoteChecklistItem[];
 }
 
 export interface ToolDefinition {
@@ -117,6 +119,9 @@ export interface ToolDefinition {
 		type: 'object';
 		properties: Record<string, unknown>;
 		required?: string[];
+	};
+	metadata?: {
+		submodule: string;
 	};
 	execute: (params: any) => Promise<any>;
 }

@@ -455,12 +455,12 @@
 	<header class="border-b bg-card/80 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10">
 		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6">
 			<!-- Left: Title, Menu, & Search -->
-			<div class="flex items-center gap-3 sm:gap-6 w-full sm:flex-1">
-				<div class="flex items-center gap-3 flex-shrink-0">
+			<div class="flex items-center flex-wrap md:flex-nowrap gap-3 sm:gap-6 w-full sm:flex-1">
+				<div class="flex  items-center gap-3 flex-shrink-0">
 					<Button
 						variant="ghost"
 						size="icon"
-						class="lg:hidden"
+						class="md:hidden"
 						onclick={toggleSidebar}
 						aria-label="Toggle sidebar"
 					>

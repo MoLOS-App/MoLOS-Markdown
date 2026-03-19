@@ -128,7 +128,7 @@
 	}
 </script>
 
-<Dialog.Root open={true} onOpenChange={(o) => o && onClose()}>
+<Dialog.Root open={true} onOpenChange={(o) => { if (!o) onClose(); }}>
 	<Dialog.Content class="max-w-[90vw] sm:max-w-md">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-3">

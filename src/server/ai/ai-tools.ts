@@ -28,6 +28,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 					limit: { type: 'number', default: 10 }
 				}
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				return await markdownRepo.getByUserId(userId, params.limit as number);
 			}
@@ -42,6 +43,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				const page = await markdownRepo.getById(params.id as string, userId);
 				if (!page) {
@@ -61,6 +63,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['query']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				return await markdownRepo.search(
 					userId,
@@ -82,6 +85,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['title']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				try {
 					const page = await markdownRepo.create(
@@ -115,6 +119,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				try {
 					const updateData: Record<string, unknown> = {};
@@ -142,6 +147,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				const success = await markdownRepo.delete(params.id as string, userId);
 				return { success, id: params.id };
@@ -154,6 +160,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				type: 'object',
 				properties: {}
 			},
+			metadata: { submodule: 'pages' },
 			execute: async () => {
 				return await markdownRepo.getTree(userId);
 			}
@@ -168,6 +175,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['pageId']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				return await markdownRepo.getVersions(params.pageId as string, userId);
 			}
@@ -183,6 +191,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['pageId', 'version']
 			},
+			metadata: { submodule: 'pages' },
 			execute: async (params) => {
 				try {
 					const restored = await markdownRepo.restoreVersion(
@@ -223,6 +232,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 					limit: { type: 'number', description: 'Limit results', default: 20 }
 				}
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				if (params.search) {
 					return await quickNotesRepo.searchByUserId(
@@ -249,6 +259,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const note = await quickNotesRepo.getById(params.id as string, userId);
 				if (!note) return { error: 'Note not found' };
@@ -271,6 +282,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['query']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const notes = await quickNotesRepo.searchByUserId(
 					userId,
@@ -299,6 +311,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['content']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				try {
 					const note = await quickNotesRepo.create({
@@ -335,6 +348,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				try {
 					const updateData: Record<string, unknown> = {};
@@ -366,6 +380,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const success = await quickNotesRepo.delete(params.id as string, userId);
 				return { success, id: params.id };
@@ -381,6 +396,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const note = await quickNotesRepo.togglePin(params.id as string, userId);
 				if (!note) return { error: 'Note not found' };
@@ -397,6 +413,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const note = await quickNotesRepo.toggleArchive(params.id as string, userId);
 				if (!note) return { error: 'Note not found' };
@@ -414,6 +431,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id', 'itemId']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const note = await quickNotesRepo.toggleChecklistItem(
 					params.id as string,
@@ -439,6 +457,7 @@ export function getAiTools(userId: string): ToolDefinition[] {
 				},
 				required: ['id', 'checklist']
 			},
+			metadata: { submodule: 'quick-notes' },
 			execute: async (params) => {
 				const note = await quickNotesRepo.updateChecklist(
 					params.id as string,

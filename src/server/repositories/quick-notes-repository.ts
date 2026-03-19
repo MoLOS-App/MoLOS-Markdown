@@ -226,4 +226,36 @@ export class QuickNotesRepository extends BaseRepository {
 		if (!result[0]) return null;
 		return this.mapRow(result[0]);
 	}
+
+	async toggleChecklistItem(
+		id: string,
+		userId: string,
+		itemId: string
+	): Promise<QuickNote | null> {
+		const note = await this.getById(id, userId);
+		if (!note) return null;
+
+		const updatedChecklist = note.checklist.map((item) =>
+			item.id === itemId ? { ...item, isChecked: !item.isChecked } : item
+		);
+
+		return this.updateChecklist(id, userId, updatedChecklist);
+	}
+
+	async updateChecklist(
+		id: string,
+		userId: string,
+		checklist: QuickNoteChecklistItem[]
+	): Promise<QuickNote | null> {
+		const now = Math.floor(Date.now() / 1000);
+
+		const result = await this.db
+			.update(markdownQuickNotes)
+			.set({ checklist: toJsonString(checklist, '[]'), updatedAt: now } as any)
+			.where(and(eq(markdownQuickNotes.id, id), eq(markdownQuickNotes.userId, userId)))
+			.returning();
+
+		if (!result[0]) return null;
+		return this.mapRow(result[0]);
+	}
 }
