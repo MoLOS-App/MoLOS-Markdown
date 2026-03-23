@@ -13,6 +13,7 @@
 	import PageEditor from "../../lib/components/PageEditor.svelte";
 	import PageCreateDialog from "../../lib/components/PageCreateDialog.svelte";
 	import PageTreeView from "../../lib/components/PageTreeView.svelte";
+	import MarkdownDisplayer from "$lib/components/shared/markdown-displayer.svelte";
 	import * as Dialog from "$lib/components/ui/dialog";
 	import {
 		Select,
@@ -20,7 +21,6 @@
 		SelectItem,
 		SelectTrigger,
 	} from "$lib/components/ui/select";
-	import { marked } from "marked";
 
 	interface Props {
 		data: PageData;
@@ -440,7 +440,6 @@
 	}
 
 	const wordCount = $derived(editContent.split(/\s+/).filter(x => x).length);
-	const renderedPageContent = $derived(selectedPage?.content ? marked(selectedPage.content) : "");
 
 	function toggleSidebar() {
 		sidebarOpen = !sidebarOpen;
@@ -615,7 +614,7 @@
 						<!-- Content -->
 						<div class="markdown-content">
 							{#if selectedPage.content}
-								{@html renderedPageContent}
+								<MarkdownDisplayer source={selectedPage.content} />
 							{:else}
 								<div class="flex flex-col items-center justify-center py-12 sm:py-16 text-center px-4">
 									<div class="w-12 h-12 sm:w-16 sm:h-16 mb-3 sm:mb-4 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/20 flex items-center justify-center">
