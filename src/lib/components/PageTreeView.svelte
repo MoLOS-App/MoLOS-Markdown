@@ -19,6 +19,23 @@
 	let { tree, selectedPath, searchQuery = "", onSelect, onNewPage, onNewFolder, onRenameNode, onManageNodeTags, onDeleteNode }: Props = $props();
 
 	let expanded = $state<Set<string>>(new Set());
+	let lastExpandedPath = $state<string | null>(null);
+
+	function expandToPath(path: string) {
+		const pathParts = path.split("/").filter(Boolean);
+		for (let i = 1; i <= pathParts.length; i++) {
+			const partialPath = "/" + pathParts.slice(0, i).join("/");
+			expanded.add(partialPath);
+		}
+		expanded = new Set(expanded);
+		lastExpandedPath = path;
+	}
+
+	$effect(() => {
+		if (selectedPath && selectedPath !== lastExpandedPath) {
+			expandToPath(selectedPath);
+		}
+	});
 
 	function toggleExpand(path: string) {
 		if (expanded.has(path)) {

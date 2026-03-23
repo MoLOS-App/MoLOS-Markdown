@@ -477,7 +477,7 @@
 				<div class="h-8 w-px bg-border hidden sm:block"></div>
 
 				<div class="relative w-full sm:flex-1 sm:max-w-md">
-					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Search class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					<Input
 						bind:value={searchQuery}
 						placeholder="Search pages..."
@@ -487,7 +487,7 @@
 			</div>
 
 			<!-- Right: Filters & Stats -->
-			<div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
+			<div class="items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end hidden md:flex">
 				<!-- Tag Filter -->
 				{#if allTags.length > 0}
 					<Select bind:value={tagFilter}>
